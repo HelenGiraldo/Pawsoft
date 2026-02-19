@@ -1,6 +1,5 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
-
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +11,10 @@ import java.util.List;
 
 /**
  * Controlador REST encargado de exponer los endpoints
- * relacionados con la gestión de usuarios.
+ * relacionados con la gestión de usuarios del sistema.
+ *
+ * Se encarga exclusivamente de operaciones CRUD.
+ * No maneja autenticación (ver AuthController).
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
@@ -25,7 +27,6 @@ import java.util.List;
  * Profesor:
  * Raúl Yulbraynner Rivera Gálvez
  */
-
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -33,98 +34,62 @@ public class UserController {
 
     private final UserService userService;
 
-
     /**
-     * Endpoint para obtener a todos los usuarios
+     * Obtiene la lista completa de usuarios registrados en el sistema.
      *
-     * @return lista de usuarios con código HTTP 200
+     * @return ResponseEntity con la lista de usuarios y código HTTP 200 (OK).
      */
-
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers(){
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     /**
-     * Endpoint para crear un nuevo usuario
+     * Crea un nuevo usuario en el sistema.
      *
+     * @param user objeto User con la información del nuevo usuario.
+     * @return ResponseEntity con el usuario creado y código HTTP 201 (CREATED).
      */
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody User user){
-        try {
-            User savedUser = userService.createUser(user);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
-        }catch (RuntimeException e){
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
-        }
+    public ResponseEntity<User> createUser(@RequestBody User user){
+        User savedUser = userService.createUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
     /**
-     * Endpoint para eliminar un usuario existente por ID
+     * Elimina un usuario existente según su identificador.
      *
-     * @param id identificador del usuario
-     * @return codigo HTTP 204 si se elimina correctamente o 404 si el usuario no existe
+     * @param id identificador único del usuario.
+     * @return ResponseEntity con código HTTP 204 (NO CONTENT) si la eliminación es exitosa.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser (@PathVariable Long id){
-
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e){
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(e.getMessage());
-        }
+    public ResponseEntity<Void> deleteUser (@PathVariable Long id){
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
     }
 
     /**
-     * Endpoint para obtener un usuario específico por su ID
+     * Obtiene un usuario específico según su identificador.
      *
-     * @param id identificador único del usuario
-     * @return usuario encontrado con código HTTP 200 o 404 si no existe
-     *
+     * @param id identificador único del usuario.
+     * @return ResponseEntity con el usuario encontrado y código HTTP 200 (OK).
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id){
-
-        try{
-            User user = userService.getUserById(id);
-            return ResponseEntity.ok(user);
-        } catch (RuntimeException e){
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
-        }
-
-
+    public ResponseEntity<User> getUserById(@PathVariable Long id){
+        User user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
-
 
     /**
-     * Endpoint para actualizar la información de un usuario existente
+     * Actualiza la información de un usuario existente.
      *
-     * @param id identificador único del usuario a actualizar
-     * @param user datos actualizados del usuario
-     * @retunr usuario actualizado con código HTTP 200 o 404 si el usuario no existe
-     *
+     * @param id identificador único del usuario a actualizar.
+     * @param user objeto User con los nuevos datos.
+     * @return ResponseEntity con el usuario actualizado y código HTTP 200 (OK).
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user){
-
-        try{
-            User updateUser = userService.updateUser(id,user);
-            return ResponseEntity.ok(updateUser);
-
-        } catch (RuntimeException e){
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(e.getMessage());
-        }
-
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user){
+        User updatedUser = userService.updateUser(id,user);
+        return ResponseEntity.ok(updatedUser);
     }
-
-
 }

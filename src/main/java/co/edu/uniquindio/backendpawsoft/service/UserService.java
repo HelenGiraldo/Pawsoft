@@ -1,13 +1,19 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
 
+import co.edu.uniquindio.backendpawsoft.dto.LoginRequest;
+import co.edu.uniquindio.backendpawsoft.dto.LoginResponse;
+import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
+import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Servicio encargado de la lógica de negocio relacionada con la entidad User.
@@ -29,6 +35,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private final BCryptPasswordEncoder passwordEncoder;
 
 
     /**
@@ -61,6 +69,7 @@ public class UserService {
 
     /**
      * Registra un nuevo usuario en el sistema
+     * la contrasñea se encripta antes de almacenarse
      *
      * Regla de negocio que se aplica:
      * -No se permite registrar un usuario con un correo ya existente
@@ -72,6 +81,8 @@ public class UserService {
      */
 
     public User createUser(User user){
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         if (userRepository.findByEmail(user.getEmail()).isPresent()){
             throw new RuntimeException("El correo ya está registrado");
@@ -114,11 +125,14 @@ public class UserService {
 
         existingUser.setName(userUpdated.getName());
         existingUser.setEmail(userUpdated.getEmail());
-        existingUser.setPassword(userUpdated.getPassword());
+        existingUser.setPassword(passwordEncoder.encode(userUpdated.getPassword()));
+
 
         return userRepository.save(existingUser);
 
     }
+
+
 
 }
 
