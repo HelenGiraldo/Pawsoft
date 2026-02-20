@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
  * Raúl Yulbraynner Rivera Gálvez
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

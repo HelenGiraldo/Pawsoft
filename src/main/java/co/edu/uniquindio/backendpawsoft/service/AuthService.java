@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 /**
  * Servicio encargado de gestionar el proceso de autenticación
  * y generación de tokens JWT del sistema.
@@ -41,30 +43,56 @@ public class AuthService {
     private final JwtService jwtService;
 
     /**
-     * Ejecuta el proceso de autenticación de un usuario.
+     * Autentica un usuario y genera token JWT.
      *
-     * 1. Busca el usuario por correo electrónico.
-     * 2. Verifica que la contraseña coincida con la almacenada.
-     * 3. Genera un token JWT si la autenticación es válida.
+     * Reglas de negocio:
+     * - Bloqueo temporal tras 5 intentos fallidos.
+     * - Reseteo de contador tras login exitoso.
      *
-     * @param loginRequest objeto que contiene correo y contraseña.
-     * @return LoginResponse con mensaje, correo y token JWT.
-     * @throws NotFoundException si el usuario no existe.
-     * @throws UnauthorizedException si la contraseña es incorrecta.
+     * @param loginRequest correo y contraseña
+     * @return LoginResponse con token JWT
+     * @throws NotFoundException si el usuario no existe
+     * @throws UnauthorizedException si contraseña incorrecta o cuenta bloqueada
      */
     public LoginResponse login(LoginRequest loginRequest) {
 
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new NotFoundException("Credenciales inválidas"));
 
+        // Revisar si el usuario está bloqueado
+        if (user.getLockTime() != null) {
+            if (user.getLockTime().isAfter(LocalDateTime.now().minusMinutes(1))) {
+                throw new UnauthorizedException("Usuario bloqueado temporalmente. Intente más tarde.");
+            } else {
+
+                // Resetear bloqueo si ya pasó el tiempo
+                user.setFailedAttempts(0);
+                user.setLockTime(null);
+                userRepository.save(user);
+            }
+        }
+
+        // Validar contraseña
         boolean passwordMatch = passwordEncoder.matches(
                 loginRequest.getPassword(),
                 user.getPassword()
         );
 
         if (!passwordMatch) {
+            user.setFailedAttempts(user.getFailedAttempts() + 1);
+
+            if (user.getFailedAttempts() >= 3) {
+                user.setLockTime(LocalDateTime.now());
+            }
+
+            userRepository.save(user);
             throw new UnauthorizedException("Credenciales inválidas");
         }
+
+        // Login exitoso: resetear contador
+        user.setFailedAttempts(0);
+        user.setLockTime(null);
+        userRepository.save(user);
 
         String token = jwtService.generateToken(user.getEmail());
 
@@ -74,4 +102,5 @@ public class AuthService {
                 token
         );
     }
+
 }

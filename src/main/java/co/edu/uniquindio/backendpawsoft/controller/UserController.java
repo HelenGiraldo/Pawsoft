@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
+import co.edu.uniquindio.backendpawsoft.dto.UserRequest;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ import java.util.List;
  * Raúl Yulbraynner Rivera Gálvez
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping
 @RequiredArgsConstructor
 public class UserController {
 
@@ -39,7 +40,7 @@ public class UserController {
      *
      * @return ResponseEntity con la lista de usuarios y código HTTP 200 (OK).
      */
-    @GetMapping
+    @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers(){
         return ResponseEntity.ok(userService.getAllUsers());
     }
@@ -47,12 +48,12 @@ public class UserController {
     /**
      * Crea un nuevo usuario en el sistema.
      *
-     * @param user objeto User con la información del nuevo usuario.
+     * @param userRequest objeto User con la información del nuevo usuario.
      * @return ResponseEntity con el usuario creado y código HTTP 201 (CREATED).
      */
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user){
-        User savedUser = userService.createUser(user);
+    @PostMapping("/auth/register")
+    public ResponseEntity<User> createUser(@RequestBody UserRequest userRequest){
+        User savedUser = userService.createUser(userRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
@@ -62,7 +63,7 @@ public class UserController {
      * @param id identificador único del usuario.
      * @return ResponseEntity con código HTTP 204 (NO CONTENT) si la eliminación es exitosa.
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deleteUser (@PathVariable Long id){
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
@@ -74,7 +75,7 @@ public class UserController {
      * @param id identificador único del usuario.
      * @return ResponseEntity con el usuario encontrado y código HTTP 200 (OK).
      */
-    @GetMapping("/{id}")
+    @GetMapping("/get/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Long id){
         User user = userService.getUserById(id);
         return ResponseEntity.ok(user);
@@ -87,8 +88,8 @@ public class UserController {
      * @param user objeto User con los nuevos datos.
      * @return ResponseEntity con el usuario actualizado y código HTTP 200 (OK).
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user){
+    @PutMapping("/update/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody UserRequest user){
         User updatedUser = userService.updateUser(id,user);
         return ResponseEntity.ok(updatedUser);
     }

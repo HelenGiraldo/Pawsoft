@@ -3,6 +3,13 @@ package co.edu.uniquindio.backendpawsoft.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 
 /**
@@ -28,7 +35,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 
-public class User {
+public class User implements UserDetails {
 
     /**
      * Identificador único del usuario
@@ -61,6 +68,54 @@ public class User {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
+
+    /**
+     * Contador de intentos fallidos de inicio de sesión
+     * Siempre tendrá un valor, nunca null
+     */
+
+
+    @Column(nullable = false)
+    private int failedAttempts = 0;
+
+
+
+    /**
+     * Fecha y hora hasta la cual la cuenta está bloqueada
+     * si es null o pasada, la cuenta está desbloqueada
+     */
+    private LocalDateTime lockTime;
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(); // si no manejas roles aún
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 
 
 
