@@ -2,6 +2,7 @@ package co.edu.uniquindio.backendpawsoft;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Clase principal del sistema Backend Pawsoft.
@@ -19,7 +20,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  */
 
-
+@EnableScheduling
 @SpringBootApplication
 public class BackendPawsoftApplication {
 

@@ -1,19 +1,26 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
-import co.edu.uniquindio.backendpawsoft.dto.LoginRequest;
-import co.edu.uniquindio.backendpawsoft.dto.LoginResponse;
+import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.service.AuthService;
+import co.edu.uniquindio.backendpawsoft.service.PasswordResetService;
+import co.edu.uniquindio.backendpawsoft.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
- * Controlador REST encargado de exponer los endpoints
- * relacionados con la autenticación de usuarios en el sistema.
+ * Controlador REST que expone los endpoints de autenticación del sistema.
  *
- * Se encarga exclusivamente del proceso de login y generación
- * de token de autenticación (JWT).
+ * Maneja:
+ * - Login de usuarios.
+ * - Verificación de segundo factor (2FA).
+ * - Cambio de contraseña en el primer acceso.
+ * - Flujo de “olvidé mi contraseña” (solicitar token y restablecer contraseña).
+ *
+ * La lógica de negocio se delega a {@link AuthService} y {@link PasswordResetService}.
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
@@ -32,22 +39,100 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private final UserService userService;
+    private final PasswordResetService passwordResetService;
     private final AuthService authService;
 
     /**
-     * Autentica un usuario en el sistema.
-     *
-     * Recibe las credenciales (correo y contraseña),
-     * las valida y delega el proceso de autenticación
-     * al servicio correspondiente.
-     *
-     * @param loginRequest objeto que contiene las credenciales del usuario.
-     * @return ResponseEntity con el token JWT y código HTTP 200 (OK)
-     *         si la autenticación es exitosa.
+     * Autentica un usuario e inicia el flujo de 2FA si aplica.
      */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest loginRequest
+    ) {
         LoginResponse response = authService.login(loginRequest);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Verifica el código 2FA enviado al correo del usuario.
+     */
+    @PostMapping("/verify-2fa")
+    public ResponseEntity<LoginResponse> verify2FA(
+            @RequestParam String email,
+            @RequestParam String code
+    ) {
+        LoginResponse response = authService.verifyCode(email, code);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Reenvía el código 2FA al correo SIN pedir contraseña nuevamente.
+     */
+    @PostMapping("/resend-2fa")
+    public ResponseEntity<LoginResponse> resend2FA(
+            @RequestParam String email
+    ) {
+        LoginResponse response = authService.resend2FACode(email);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Cambia la contraseña durante el primer inicio de sesión.
+     */
+    @PostMapping("/change-password-first")
+    public ResponseEntity<LoginResponse> changePasswordFirstLogin(
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        LoginResponse response = authService.changePasswordFirstLogin(
+                request.getEmail(),
+                request.getNewPassword()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Inicia el flujo de recuperación de contraseña.
+     *
+     * Por seguridad, siempre responde de forma genérica.
+     */
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<Map<String, String>> requestReset(
+            @Valid @RequestBody RequestPasswordReset request
+    ) {
+        passwordResetService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(Map.of("mensaje",
+                "Si el correo existe, se ha enviado un enlace de recuperación."
+        ));
+    }
+
+    /**
+     * Finaliza el restablecimiento de contraseña usando un token válido.
+     */
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<Map<String, String>> confirmReset(
+            @Valid @RequestBody ResetPassword request
+    ) {
+        passwordResetService.resetPassword(
+                request.getToken(),
+                request.getNewPassword()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Contraseña actualizada correctamente"
+        ));
+    }
+
+    /**
+     * Verifica la cuenta del usuario mediante token.
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(
+            @RequestParam String token
+    ) {
+        userService.verifyEmail(token);
+        return ResponseEntity.ok(
+                "Cuenta verificada correctamente. Puedes cerrar esta ventana."
+        );
     }
 }

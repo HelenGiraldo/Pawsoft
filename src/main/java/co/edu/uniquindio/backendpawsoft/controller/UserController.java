@@ -1,8 +1,10 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
 import co.edu.uniquindio.backendpawsoft.dto.UserRequest;
+import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +43,7 @@ public class UserController {
      * @return ResponseEntity con la lista de usuarios y código HTTP 200 (OK).
      */
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers(){
+    public ResponseEntity<List<UserResponse>> getAllUsers(){
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
@@ -52,8 +54,8 @@ public class UserController {
      * @return ResponseEntity con el usuario creado y código HTTP 201 (CREATED).
      */
     @PostMapping("/auth/register")
-    public ResponseEntity<User> createUser(@RequestBody UserRequest userRequest){
-        User savedUser = userService.createUser(userRequest);
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest userRequest){
+        UserResponse savedUser = userService.createUser(userRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
@@ -76,8 +78,8 @@ public class UserController {
      * @return ResponseEntity con el usuario encontrado y código HTTP 200 (OK).
      */
     @GetMapping("/get/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id){
-        User user = userService.getUserById(id);
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id){
+        UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(user);
     }
 
@@ -89,8 +91,8 @@ public class UserController {
      * @return ResponseEntity con el usuario actualizado y código HTTP 200 (OK).
      */
     @PutMapping("/update/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody UserRequest user){
-        User updatedUser = userService.updateUser(id,user);
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserRequest user){
+        UserResponse updatedUser = userService.updateUser(id,user);
         return ResponseEntity.ok(updatedUser);
     }
 }
