@@ -14,20 +14,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
- * Filtro encargado de interceptar cada petición HTTP
- * y validar el token JWT enviado en el header Authorization.
+ * Filtro encargado de interceptar cada petición HTTP y validar el token JWT enviado
+ * en el header Authorization.
  *
- * Este filtro:
- * - Verifica si la petición contiene un token Bearer.
- * - Extrae el username (email) desde el JWT.
- * - Valida la firma y expiración del token.
- * - Si el token es válido, autentica al usuario en el contexto de Spring Security.
+ * Responsabilidades:
+ * - Verificar si la petición contiene un token con prefijo {@code Bearer }.
+ * - Extraer el username (email) y el rol desde el JWT.
+ * - Validar la firma y la expiración del token.
+ * - Si el token es válido, autenticar al usuario en el contexto de Spring Security.
  *
- * En caso de que el token sea inválido, esté expirado o tenga una firma incorrecta,
- * el filtro no interrumpe la ejecución, simplemente continúa la cadena de filtros,
- * permitiendo que Spring Security maneje el acceso correspondiente.
+ * Comportamiento ante errores:
+ * - Si el token no existe o no inicia con Bearer, el filtro no autentica y continúa.
+ * - Si ocurre cualquier excepción (token inválido, expirado o mal formado), el filtro
+ *   no autentica al usuario y permite que Spring Security gestione el acceso según las reglas.
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
@@ -44,15 +46,38 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    /**
+     * Servicio encargado de extraer información y validar tokens JWT.
+     */
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
 
     /**
-     * Método principal que se ejecuta por cada petición HTTP.
+     * Servicio de Spring Security para cargar usuarios a partir del username (email).
+     */
+    private final UserDetailsService userDetailsService;
+
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        return path.startsWith("/auth/password-reset")
+                || path.startsWith("/auth/login")
+                || path.startsWith("/auth/register")
+                || path.startsWith("/auth/verify-email");
+    }
+
+    /**
+     * Método que se ejecuta en cada petición HTTP para intentar autenticar al usuario
+     * con base en el token JWT recibido.
      *
-     * @param request  petición HTTP entrante
+     * Si el token es válido, se registra la autenticación en el {@link SecurityContextHolder}.
+     *
+     * @param request petición HTTP entrante
      * @param response respuesta HTTP
      * @param filterChain cadena de filtros de Spring Security
+     * @throws ServletException si ocurre un error del tipo servlet
+     * @throws IOException si ocurre un error de entrada/salida
      */
     @Override
     protected void doFilterInternal(
@@ -63,8 +88,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
-        // Si no existe el header Authorization o no es tipo Bearer,
-        // se continúa con la cadena de filtros sin autenticar.
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -73,27 +96,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt = authHeader.substring(7);
 
         try {
-
-            // Extrae el email (username) desde el token
             final String userEmail = jwtService.extractUsername(jwt);
 
-            // Verifica que no exista autenticación previa en el contexto
             if (userEmail != null &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // Carga los detalles del usuario desde la base de datos
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(userEmail);
 
-                // Valida el token (firma y expiración)
                 if (jwtService.isTokenValid(jwt, userDetails)) {
 
-                    // Crea el objeto de autenticación
+                    String role = jwtService.extractRole(jwt);
+
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
                                     null,
-                                    userDetails.getAuthorities()
+                                    List.of(() -> role)
                             );
 
                     authToken.setDetails(
@@ -101,7 +120,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     .buildDetails(request)
                     );
 
-                    // Establece la autenticación en el contexto de seguridad
                     SecurityContextHolder.getContext()
                             .setAuthentication(authToken);
                 }
@@ -118,4 +136,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
+
+
 }
