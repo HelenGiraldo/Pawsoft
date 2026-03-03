@@ -42,6 +42,7 @@ public class LoginResponse {
      */
     private String email;
 
+    
     /**
      * Rol asignado al usuario (ADMIN, VETERINARIO, etc.).
      */
@@ -51,4 +52,7 @@ public class LoginResponse {
      * Token JWT generado tras autenticación exitosa.
      */
     private String token;
+
+
+    private boolean mustChangePassword;
 }

@@ -55,4 +55,7 @@ public class UserRequest {
             message = "La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial"
     )
     private String password;
+
+
+    private String phone;
 }

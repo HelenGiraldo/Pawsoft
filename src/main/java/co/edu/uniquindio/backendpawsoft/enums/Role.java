@@ -16,7 +16,7 @@ package co.edu.uniquindio.backendpawsoft.enums;
  * Autoras:
  *
  * Valentina Porras Salazar
- * >Helen Xiomara Giraldo Libreros
+ * Helen Xiomara Giraldo Libreros
  *
  * Profesor:
  * Raúl Yulbraynner Rivera Gálvez

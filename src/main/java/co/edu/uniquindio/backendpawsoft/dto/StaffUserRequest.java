@@ -38,4 +38,8 @@ public class StaffUserRequest {
      * Debe corresponder a un rol permitido para personal (por ejemplo: veterinario o recepcionista).
      */
     private Role role; // VETERINARIO o RECEPCIONISTA
+
+
+    /** URL de foto subida a Cloudinary — opcional, solo aplica para veterinarios */
+    private String photoUrl;
 }
