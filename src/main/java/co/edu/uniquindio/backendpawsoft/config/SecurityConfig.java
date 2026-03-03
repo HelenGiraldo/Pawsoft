@@ -4,6 +4,7 @@ import co.edu.uniquindio.backendpawsoft.security.JwtAuthenticationFilter;
 import co.edu.uniquindio.backendpawsoft.security.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -78,26 +79,28 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-
-                        // Endpoints públicos
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
 
-                        // ADMIN
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/users")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_RECEPCIONISTA")
+                        .requestMatchers("/api/admin/pets").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECEPCIONISTA")
+                        .requestMatchers("/api/admin/pets/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECEPCIONISTA")
+                        .requestMatchers("/api/admin/clients")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_RECEPCIONISTA")
+                        .requestMatchers("/api/admin/public/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_CLIENTE", "ROLE_RECEPCIONISTA")
 
-                        // VETERINARIO
-                        .requestMatchers("/api/veterinario/**").hasRole("VETERINARIO")
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/veterinario/**").hasAuthority("ROLE_VETERINARIO")
+                        .requestMatchers("/api/recepcionista/**").hasAuthority("ROLE_RECEPCIONISTA")
+                        .requestMatchers("/api/cliente/**").hasAuthority("ROLE_CLIENTE")
+                        .requestMatchers("/api/vet/**").hasAuthority("ROLE_VETERINARIO")
 
-                        // RECEPCIONISTA
-                        .requestMatchers("/api/recepcionista/**").hasRole("RECEPCIONISTA")
-
-                        // CLIENTE
-                        .requestMatchers("/api/cliente/**").hasRole("CLIENTE")
-
-                        // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
 
