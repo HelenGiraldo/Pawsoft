@@ -8,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -22,6 +23,12 @@ import java.util.List;
  * - control de primer acceso (cambio de contraseña temporal)
  * - bloqueo temporal por seguridad
  * - soporte para datos de segundo factor (2FA)
+ *
+ * Relaciones:
+ * - Un usuario puede tener múltiples códigos 2FA asociados a lo largo del tiempo.
+ *   La relación está configurada con {@code CascadeType.ALL} y {@code orphanRemoval = true},
+ *   lo que garantiza que al eliminar un usuario, todos sus códigos 2FA se eliminen
+ *   automáticamente sin violar restricciones de clave foránea.
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
@@ -105,6 +112,55 @@ public class User implements UserDetails {
     private LocalDateTime lockTime;
 
     /**
+     * Código asociado a segundo factor (2FA), si aplica.
+     *
+     * Nota: si el sistema usa la entidad {@link Codigo2FA} como fuente principal,
+     * este campo puede servir como soporte o para compatibilidad con el flujo actual.
+     */
+    private String twoFactorCode;
+
+    /**
+     * Fecha y hora de expiración del código 2FA asociado, si aplica.
+     */
+    private LocalDateTime twoFactorExpiration;
+
+    /**
+     * Indica si la cuenta del usuario está habilitada.
+     *
+     * Un usuario deshabilitado no puede iniciar sesión en el sistema.
+     * Se inicializa en {@code false} y se activa tras completar el registro o
+     * ser habilitado manualmente por un administrador.
+     */
+    @Column(nullable = false)
+    private boolean enabled = false;
+
+    /**
+     * URL de la foto de perfil del usuario.
+     *
+     * Aplica especialmente para veterinarios, cuya foto se muestra al cliente
+     * durante el proceso de agendamiento de citas.
+     * Se almacena como URL pública (por ejemplo, desde Cloudinary).
+     */
+    @Column(length = 500)
+    private String photoUrl;
+
+    /**
+     * Lista de códigos 2FA asociados a este usuario.
+     *
+     * La relación es bidireccional con {@link Codigo2FA}.
+     * Se usa {@code CascadeType.ALL} para que cualquier operación sobre el usuario
+     * (incluyendo eliminación) se propague automáticamente a sus códigos 2FA.
+     * {@code orphanRemoval = true} garantiza que los códigos huérfanos
+     * (sin usuario asociado) sean eliminados de la base de datos.
+     *
+     * Esto evita errores de clave foránea al eliminar un usuario que tenga
+     * códigos 2FA registrados en la tabla {@code codigos_2fa}.
+     */
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Codigo2FA> codigos2fa = new ArrayList<>();
+
+    /**
      * Retorna las autoridades (roles) del usuario.
      *
      * @return colección con la autoridad correspondiente al rol del usuario
@@ -167,28 +223,13 @@ public class User implements UserDetails {
     /**
      * Indica si el usuario está habilitado.
      *
-     * Puede usarse en el futuro para desactivar cuentas manualmente.
-     *
-     * @return true siempre
+     * @return true si el usuario está activo en el sistema
      */
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 
-    /**
-     * Código asociado a segundo factor (2FA), si aplica.
-     *
-     * Nota: si el sistema usa la entidad {@link Codigo2FA} como fuente principal,
-     * este campo puede servir como soporte o para compatibilidad con el flujo actual.
-     */
-    private String twoFactorCode;
-
-    /**
-     * Fecha y hora de expiración del código 2FA asociado, si aplica.
-     */
-    private LocalDateTime twoFactorExpiration;
-
-    @Column(nullable = false)
-    private boolean enabled = false;
+    @Column(length = 20)
+    private String phone;
 }

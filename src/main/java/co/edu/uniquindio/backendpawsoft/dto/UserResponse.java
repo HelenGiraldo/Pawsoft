@@ -1,6 +1,7 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -20,6 +21,7 @@ import lombok.Data;
  * Profesor:
  * Raúl Yulbraynner Rivera Gálvez
  */
+@Builder
 @Data
 @AllArgsConstructor
 public class UserResponse {
@@ -39,9 +41,21 @@ public class UserResponse {
      */
     private String email;
 
+    private String phone;
+
     /**
      * Rol del usuario dentro del sistema (representado como texto).
      * Usualmente corresponde al nombre del enum Role (por ejemplo: ROLE_ADMIN, ROLE_CLIENTE).
      */
     private String role;
+
+
+
+    private String photoUrl;   // para mostrar foto de veterinarios
+    private boolean enabled;   // para mostrar estado activo/inactivo
+
+
+
+
+
 }
