@@ -59,6 +59,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         String path = request.getServletPath();
 
         return path.startsWith("/auth/password-reset")
@@ -66,6 +71,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/auth/register")
                 || path.startsWith("/auth/verify-email");
     }
+
+
 
     /**
      * Método que se ejecuta en cada petición HTTP para intentar autenticar al usuario
@@ -136,6 +143,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
+
 
 
 
