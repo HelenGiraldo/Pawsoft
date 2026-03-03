@@ -64,9 +64,6 @@ public class EmailService {
     /**
      * Envía una contraseña temporal a un usuario staff recién creado.
      *
-     * Esta contraseña se utiliza únicamente para el primer inicio de sesión y debe ser
-     * cambiada por el usuario según la regla de primer acceso.
-     *
      * @param destinatario correo del usuario
      * @param password contraseña temporal en texto plano
      */
@@ -82,8 +79,13 @@ public class EmailService {
         mailSender.send(mensaje);
     }
 
+    /**
+     * Envía un correo de recuperación de contraseña con enlace de reset.
+     *
+     * @param to correo del usuario
+     * @param resetLink enlace de recuperación
+     */
     public void sendPasswordResetEmail(String to, String resetLink) {
-
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject("Recuperación de contraseña - PawSoft");
@@ -94,15 +96,28 @@ public class EmailService {
                         "\n\nEste enlace expira en 5 minutos.\n" +
                         "Si no solicitaste este cambio, ignora este correo."
         );
-
         mailSender.send(message);
     }
 
+    /**
+     * Envía un correo de verificación de cuenta con el enlace de activación.
+     *
+     * @param to    correo del usuario
+     * @param token token de verificación generado
+     */
     public void sendVerificationEmail(String to, String token) {
-        String link = "http://localhost:8080/api/auth/verify?token=" + token;
+        String link = "http://localhost:8080/auth/verify-email?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
-        message.setSubject("Verifica tu cuenta");
+        message.setSubject("PawSoft — Verifica tu cuenta");
+        message.setText(
+                "¡Bienvenido a PawSoft!\n\n" +
+                        "Para activar tu cuenta haz clic en el siguiente enlace:\n\n" +
+                        link +
+                        "\n\nEste enlace expira en 24 horas.\n" +
+                        "Si no creaste esta cuenta, ignora este correo."
+        );
+        mailSender.send(message);
     }
 }

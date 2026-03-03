@@ -110,9 +110,11 @@ public class UserService implements UserDetailsService {
         User user = new User();
         user.setName(userRequest.getName());
         user.setEmail(userRequest.getEmail());
+        user.setPhone(userRequest.getPhone());
         user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
         user.setRole(Role.ROLE_CLIENTE);
         user.setEnabled(false);
+        user.setPrimerAcceso(false);
 
         User savedUser = userRepository.save(user);
 
@@ -233,7 +235,10 @@ public class UserService implements UserDetailsService {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getRole().name()
+                user.getPhone(),
+                user.getRole().name(),
+                user.getPhotoUrl(),
+                user.isEnabled()
         );
     }
 
@@ -268,18 +273,14 @@ public class UserService implements UserDetailsService {
                 .role(role)
                 .password(passwordTemporalEncriptada)
                 .primerAcceso(true)
+                .enabled(true)
                 .build();
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         emailService.sendTemporaryPassword(email, passwordTemporal);
 
-        return new UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole().name()
-        );
+        return mapToResponse(savedUser);
     }
 
     public void verifyEmail(String token) {

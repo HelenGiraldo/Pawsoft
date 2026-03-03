@@ -2,6 +2,7 @@ package co.edu.uniquindio.backendpawsoft.service;
 
 import co.edu.uniquindio.backendpawsoft.dto.LoginRequest;
 import co.edu.uniquindio.backendpawsoft.dto.LoginResponse;
+import co.edu.uniquindio.backendpawsoft.enums.Role;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
 import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
 import co.edu.uniquindio.backendpawsoft.model.Codigo2FA;
@@ -119,7 +120,8 @@ public class AuthService {
                 "Código de verificación enviado al correo",
                 user.getEmail(),
                 user.getRole().name(),
-                null
+                null,
+                false
         );
     }
 
@@ -146,7 +148,8 @@ public class AuthService {
                 "Código de verificación reenviado al correo",
                 user.getEmail(),
                 user.getRole().name(),
-                null
+                null,
+                false
         );
     }
 
@@ -171,11 +174,15 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
 
+        boolean mustChange = user.isPrimerAcceso()
+                && user.getRole() != Role.ROLE_CLIENTE;
+
         return new LoginResponse(
                 "Autenticación completa",
                 user.getEmail(),
                 user.getRole().name(),
-                token
+                token,
+                mustChange
         );
     }
 
@@ -279,7 +286,8 @@ public class AuthService {
                 "Contraseña cambiada exitosamente",
                 user.getEmail(),
                 user.getRole().name(),
-                token
+                token,
+                false
         );
     }
 
@@ -300,4 +308,6 @@ public class AuthService {
         String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
         return password.matches(pattern);
     }
+
+
 }
