@@ -1,9 +1,11 @@
 package co.edu.uniquindio.backendpawsoft.repository;
 
+import co.edu.uniquindio.backendpawsoft.enums.Role;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -35,5 +37,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
 
     Optional<User> findByEmail(String email);
+
+    // Para listar veterinarios (y filtrar por rol en el admin)
+    List<User> findByRole(Role role);
 
 }
