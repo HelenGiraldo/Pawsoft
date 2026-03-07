@@ -16,20 +16,23 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 /**
- * Servicio responsable de la autenticación de usuarios y la emisión de tokens JWT del sistema.
+ * Servicio responsable de la autenticación de usuarios y la emisión de tokens JWT.
  *
- * Implementa el flujo de autenticación en dos fases:
- * 1) Validación de credenciales (email + contraseña) e inicio de 2FA
- * 2) Verificación del código 2FA y generación del JWT
+ * Gestiona el flujo completo de autenticación en dos fases:
  *
- * También gestiona reglas de seguridad adicionales:
- * - Control de intentos fallidos
- * - Bloqueo temporal de cuenta por intentos repetidos
- * - Cambio de contraseña en primer acceso para usuarios con contraseña temporal
+ * Fase 1 — Login:
+ *   Valida reCAPTCHA, verifica credenciales (email + contraseña), controla el bloqueo
+ *   por intentos fallidos y, si todo es correcto, genera y envía un código 2FA al correo.
  *
- * Flujo general:
- * 1. POST /auth/login       → valida credenciales → genera código → envía correo
- * 2. POST /auth/verify-2fa  → valida código → emite JWT
+ * Fase 2 — Verificación 2FA:
+ *   Valida el código ingresado por el usuario contra el almacenado en BD,
+ *   aplicando reglas de expiración y fuerza bruta. Si es correcto, emite el JWT.
+ *
+ * Propagación de IP:
+ *   La dirección IP del cliente se recibe desde el controlador (que tiene acceso a
+ *   {@code HttpServletRequest}) y se propaga a {@link TwoFactorService} para que quede
+ *   registrada en los logs de auditoría de {@code codigos_2fa}. Este servicio no depende
+ *   directamente de la capa HTTP, lo que mantiene la separación de responsabilidades.
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
@@ -46,74 +49,73 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthService {
 
-    /**
-     * Número máximo de intentos fallidos permitidos antes de bloquear temporalmente la cuenta.
-     */
+    /** Número máximo de intentos de login fallidos antes de bloquear la cuenta. */
     private static final int MAX_FAILED_ATTEMPTS = 3;
 
-    /**
-     * Duración del bloqueo temporal de cuenta en minutos.
-     */
+    /** Minutos que la cuenta permanece bloqueada tras agotar los intentos fallidos. */
     private static final long LOCK_DURATION_MINUTES = 1;
 
-    /**
-     * Repositorio para acceder y persistir información de usuarios.
-     */
     private final UserRepository userRepository;
-
-    /**
-     * Encoder BCrypt para validar y generar hashes de contraseñas.
-     */
     private final BCryptPasswordEncoder passwordEncoder;
-
-    /**
-     * Servicio encargado de generar y validar tokens JWT.
-     */
     private final JwtService jwtService;
-
-    /**
-     * Servicio que encapsula la lógica de generación y validación de códigos 2FA.
-     */
     private final TwoFactorService twoFactorService;
-
-    /**
-     * Servicio de envío de correo, usado para enviar el código 2FA.
-     */
     private final EmailService emailService;
+    private final RecaptchaService recaptchaService;
+
+    // ── Fase 1: Login ─────────────────────────────────────────────────────────
 
     /**
-     * Primera fase del login: valida credenciales e inicia el flujo 2FA.
+     * Primera fase del login: valida reCAPTCHA, credenciales e inicia el flujo 2FA.
      *
-     * Reglas de negocio:
-     * - Si el usuario no existe, se lanza {@link NotFoundException}.
-     * - Si la cuenta está bloqueada, se lanza {@link UnauthorizedException}.
-     * - Si la contraseña es incorrecta, se incrementan intentos fallidos.
-     * - Al llegar al máximo de intentos, la cuenta se bloquea temporalmente.
-     * - Si las credenciales son correctas, se genera y envía el código 2FA.
+     * Pasos:
+     * 1. Valida el token reCAPTCHA para prevenir bots antes de consultar la BD.
+     * 2. Busca el usuario por email; lanza excepción genérica si no existe
+     *    (evita enumeración de usuarios).
+     * 3. Verifica si la cuenta está bloqueada por intentos fallidos previos.
+     * 4. Compara la contraseña con el hash almacenado; si falla incrementa el contador.
+     * 5. Verifica que la cuenta esté habilitada (email verificado).
+     * 6. Resetea el contador de intentos fallidos tras login exitoso.
+     * 7. Genera un código 2FA, lo persiste y lo envía al correo del usuario.
      *
-     * @param loginRequest objeto con email y contraseña
-     * @return LoginResponse indicando que el código fue enviado (sin JWT todavía)
+     * La IP se propaga a {@link TwoFactorService#crearCodigo} para registrarla
+     * en auditoría junto al código generado.
+     *
+     * @param loginRequest DTO con email, password y recaptchaToken
+     * @param ipOrigen     dirección IP del cliente capturada en el controlador
+     * @return {@link LoginResponse} indicando que el código 2FA fue enviado
+     * @throws UnauthorizedException si el reCAPTCHA falla, las credenciales son inválidas
+     *                               o la cuenta está bloqueada
+     * @throws NotFoundException     si el email no corresponde a ningún usuario registrado
      */
-    public LoginResponse login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest, String ipOrigen) {
+
+        // Valida reCAPTCHA antes de cualquier consulta a BD
+        if (!recaptchaService.isValid(loginRequest.getRecaptchaToken())) {
+            throw new UnauthorizedException("Verificación reCAPTCHA fallida. Intenta de nuevo.");
+        }
 
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new NotFoundException("Credenciales inválidas"));
 
+        // Verifica si la cuenta está bloqueada temporalmente
         validateAccountLock(user);
 
+        // Verifica contraseña; si falla registra el intento y bloquea si corresponde
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             handleFailedAttempt(user);
             throw new UnauthorizedException("Credenciales inválidas");
         }
 
-        if(!user.isEnabled()) {
+        // Verifica que el usuario haya confirmado su correo
+        if (!user.isEnabled()) {
             throw new RuntimeException("Debes verificar tu correo antes de iniciar sesión");
         }
 
+        // Login exitoso — resetea el contador de fallos
         resetFailedAttempts(user);
 
-        Codigo2FA codigo = twoFactorService.crearCodigo(user);
-
+        // Genera y envía el código 2FA; registra la IP de esta solicitud
+        Codigo2FA codigo = twoFactorService.crearCodigo(user, ipOrigen);
         emailService.enviarCodigo2FA(user.getEmail(), codigo.getCodigo());
 
         return new LoginResponse(
@@ -125,55 +127,35 @@ public class AuthService {
         );
     }
 
-    /**
-     * Reenvía un nuevo código 2FA al correo del usuario SIN volver a validar contraseña.
-     * Útil cuando el usuario no recibió el correo o el código expiró.
-     */
-    public LoginResponse resend2FACode(String email) {
 
+
+    /**
+     * Segunda fase del login: valida el código 2FA ingresado por el usuario.
+     *
+     * Delega la validación a {@link TwoFactorService#validarCodigo}, que aplica
+     * las reglas de expiración, intentos fallidos y bloqueo por fuerza bruta,
+     * registrando el resultado en auditoría junto con la IP de este intento.
+     *
+     * Si el código es correcto, emite un JWT firmado con el rol del usuario.
+     * También detecta si el usuario debe cambiar su contraseña en este primer acceso.
+     *
+     * @param email     correo del usuario que intenta verificar
+     * @param ingresado código de 6 dígitos ingresado por el usuario
+     * @param ipOrigen  dirección IP del cliente capturada en el controlador
+     * @return {@link LoginResponse} con token JWT, rol y flag de primer acceso
+     * @throws NotFoundException     si el email no corresponde a ningún usuario registrado
+     * @throws UnauthorizedException si el código es incorrecto, expiró o hay bloqueo activo
+     */
+    public LoginResponse verifyCode(String email, String ingresado, String ipOrigen) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        if (!user.isEnabled()) {
-            throw new UnauthorizedException("Debes verificar tu correo antes de continuar");
-        }
-
-        // Opcional: si quieres respetar bloqueo temporal también aquí, descomenta:
-        // validateAccountLock(user);
-
-        Codigo2FA codigo = twoFactorService.crearCodigo(user);
-        emailService.enviarCodigo2FA(user.getEmail(), codigo.getCodigo());
-
-        return new LoginResponse(
-                "Código de verificación reenviado al correo",
-                user.getEmail(),
-                user.getRole().name(),
-                null,
-                false
-        );
-    }
-
-    /**
-     * Segunda fase del login: verifica el código 2FA y emite el JWT.
-     *
-     * Reglas de negocio:
-     * - El usuario debe existir.
-     * - La validación del código (existencia, expiración, uso e intentos) se delega a {@link TwoFactorService}.
-     * - Si el código es válido, se emite el JWT.
-     *
-     * @param email correo del usuario
-     * @param ingresado código ingresado por el usuario
-     * @return LoginResponse con el JWT listo para usar
-     */
-    public LoginResponse verifyCode(String email, String ingresado) {
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
-
-        twoFactorService.validarCodigo(user, ingresado);
+        // Delega la validación del código al servicio 2FA con la IP para auditoría
+        twoFactorService.validarCodigo(user, ingresado, ipOrigen);
 
         String token = jwtService.generateToken(user);
 
+        // Los usuarios distintos a ROLE_CLIENTE deben cambiar la contraseña en el primer acceso
         boolean mustChange = user.isPrimerAcceso()
                 && user.getRole() != Role.ROLE_CLIENTE;
 
@@ -186,79 +168,63 @@ public class AuthService {
         );
     }
 
-    /**
-     * Verifica si la cuenta está bloqueada temporalmente.
-     *
-     * Si la cuenta está bloqueada y el tiempo de bloqueo aún no termina, lanza excepción.
-     * Si el tiempo ya pasó, resetea el estado de bloqueo e intentos fallidos.
-     *
-     * @param user usuario a validar
-     * @throws UnauthorizedException si la cuenta sigue bloqueada
-     */
-    private void validateAccountLock(User user) {
+    // ── Reenvío de código 2FA ─────────────────────────────────────────────────
 
-        if (user.getLockTime() == null) {
-            return;
+    /**
+     * Reenvía un nuevo código 2FA al correo del usuario sin requerir contraseña nuevamente.
+     *
+     * El código anterior (si existe) queda invalidado en auditoría con resultado
+     * {@code INVALIDADO}. El nuevo código se registra con la IP de esta solicitud.
+     *
+     * Se usa cuando el usuario no recibió el correo o el código expiró antes de verificarlo.
+     *
+     * @param email    correo del usuario que solicita el reenvío
+     * @param ipOrigen dirección IP del cliente capturada en el controlador
+     * @return {@link LoginResponse} confirmando que el nuevo código fue enviado
+     * @throws NotFoundException     si el email no corresponde a ningún usuario registrado
+     * @throws UnauthorizedException si la cuenta no está habilitada (email no verificado)
+     */
+    public LoginResponse resend2FACode(String email, String ipOrigen) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        if (!user.isEnabled()) {
+            throw new UnauthorizedException("Debes verificar tu correo antes de continuar");
         }
 
-        LocalDateTime unlockTime = user.getLockTime()
-                .plusMinutes(LOCK_DURATION_MINUTES);
+        // Invalida el código activo anterior y genera uno nuevo con la IP de esta solicitud
+        Codigo2FA codigo = twoFactorService.crearCodigo(user, ipOrigen);
+        emailService.enviarCodigo2FA(user.getEmail(), codigo.getCodigo());
 
-        if (unlockTime.isAfter(LocalDateTime.now())) {
-            throw new UnauthorizedException(
-                    "Cuenta bloqueada temporalmente. Intente en 1 minuto."
-            );
-        }
-
-        resetFailedAttempts(user);
+        return new LoginResponse(
+                "Código de verificación reenviado al correo",
+                user.getEmail(),
+                user.getRole().name(),
+                null,
+                false
+        );
     }
 
-    /**
-     * Incrementa el contador de intentos fallidos y, si se alcanza el máximo,
-     * establece el inicio del bloqueo temporal.
-     *
-     * @param user usuario a actualizar
-     */
-    private void handleFailedAttempt(User user) {
-
-        int nuevosIntentos = user.getFailedAttempts() + 1;
-        user.setFailedAttempts(nuevosIntentos);
-
-        if (nuevosIntentos >= MAX_FAILED_ATTEMPTS) {
-            user.setLockTime(LocalDateTime.now());
-        }
-
-        userRepository.save(user);
-    }
 
     /**
-     * Resetea el contador de intentos fallidos y elimina el bloqueo temporal.
+     * Cambia la contraseña del usuario durante su primer inicio de sesión.
      *
-     * @param user usuario a actualizar
-     */
-    private void resetFailedAttempts(User user) {
-        user.setFailedAttempts(0);
-        user.setLockTime(null);
-        userRepository.save(user);
-    }
-
-    /**
-     * Cambia la contraseña temporal de un usuario durante el primer inicio de sesión.
+     * Aplica cuando el sistema asignó una contraseña temporal (ej: al crear un empleado
+     * desde el panel de administración). El usuario debe reemplazarla antes de operar.
      *
-     * Reglas de negocio:
-     * - Solo aplica si el usuario tiene {@code primerAcceso = true}.
-     * - La nueva contraseña debe cumplir reglas de seguridad.
-     * - La nueva contraseña no puede ser igual a la contraseña temporal actual.
-     * - Si la operación es exitosa, se marca {@code primerAcceso = false} y se emite un JWT.
+     * Validaciones:
+     * - El usuario debe tener el flag {@code primerAcceso = true}.
+     * - La nueva contraseña debe cumplir los requisitos de seguridad.
+     * - La nueva contraseña no puede ser igual a la temporal actual.
      *
-     * @param email correo del usuario
-     * @param newPassword nueva contraseña
-     * @return LoginResponse con JWT listo para usar si se actualiza correctamente
-     * @throws NotFoundException si no existe el usuario
-     * @throws UnauthorizedException si el usuario no puede cambiar la contraseña o la contraseña no cumple reglas
+     * @param email       correo del usuario que cambia su contraseña
+     * @param newPassword nueva contraseña elegida por el usuario
+     * @return {@link LoginResponse} con nuevo token JWT tras el cambio exitoso
+     * @throws NotFoundException     si el email no corresponde a ningún usuario registrado
+     * @throws UnauthorizedException si el usuario ya cambió la contraseña, si la nueva
+     *                               no cumple los requisitos o si es igual a la actual
      */
     public LoginResponse changePasswordFirstLogin(String email, String newPassword) {
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
@@ -291,23 +257,77 @@ public class AuthService {
         );
     }
 
+    // ── Control de intentos fallidos ──────────────────────────────────────────
+
     /**
-     * Valida la fuerza de una contraseña según reglas mínimas de seguridad.
+     * Verifica si la cuenta del usuario está bloqueada temporalmente por exceso de
+     * intentos de login fallidos.
      *
-     * Reglas:
-     * - mínimo 8 caracteres
-     * - al menos una minúscula
-     * - al menos una mayúscula
-     * - al menos un número
-     * - al menos un carácter especial
+     * Si el tiempo de bloqueo ya expiró, resetea el contador automáticamente para
+     * permitir nuevos intentos sin intervención manual.
      *
-     * @param password contraseña a validar
-     * @return true si cumple las reglas, false en caso contrario
+     * @param user usuario a verificar
+     * @throws UnauthorizedException si el bloqueo sigue vigente
+     */
+    private void validateAccountLock(User user) {
+        if (user.getLockTime() == null) return;
+
+        LocalDateTime unlockTime = user.getLockTime().plusMinutes(LOCK_DURATION_MINUTES);
+        if (unlockTime.isAfter(LocalDateTime.now())) {
+            throw new UnauthorizedException("Cuenta bloqueada temporalmente. Intente en 1 minuto.");
+        }
+
+        // El bloqueo ya expiró — resetea para permitir nuevos intentos
+        resetFailedAttempts(user);
+    }
+
+    /**
+     * Registra un intento de login fallido para el usuario dado.
+     *
+     * Incrementa el contador de fallos y, si se alcanza el máximo permitido,
+     * registra la hora de bloqueo para activar el cooldown.
+     *
+     * @param user usuario que realizó el intento fallido
+     */
+    private void handleFailedAttempt(User user) {
+        int nuevosIntentos = user.getFailedAttempts() + 1;
+        user.setFailedAttempts(nuevosIntentos);
+        if (nuevosIntentos >= MAX_FAILED_ATTEMPTS) {
+            user.setLockTime(LocalDateTime.now());
+        }
+        userRepository.save(user);
+    }
+
+    /**
+     * Resetea el contador de intentos fallidos y elimina el bloqueo activo del usuario.
+     *
+     * Se llama tras un login exitoso o tras detectar que el período de bloqueo expiró.
+     *
+     * @param user usuario cuyo estado de bloqueo se resetea
+     */
+    private void resetFailedAttempts(User user) {
+        user.setFailedAttempts(0);
+        user.setLockTime(null);
+        userRepository.save(user);
+    }
+
+    // ── Validación de contraseña ──────────────────────────────────────────────
+
+    /**
+     * Verifica si una contraseña cumple los requisitos mínimos de seguridad.
+     *
+     * Requisitos:
+     * - Mínimo 8 caracteres.
+     * - Al menos una letra minúscula.
+     * - Al menos una letra mayúscula.
+     * - Al menos un dígito.
+     * - Al menos un carácter especial (@$!%*?&).
+     *
+     * @param password contraseña en texto plano a validar
+     * @return {@code true} si cumple todos los requisitos; {@code false} en caso contrario
      */
     private boolean isPasswordStrong(String password) {
         String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
         return password.matches(pattern);
     }
-
-
 }
