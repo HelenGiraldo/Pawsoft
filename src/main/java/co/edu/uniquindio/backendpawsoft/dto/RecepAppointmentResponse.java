@@ -45,12 +45,13 @@ public record RecepAppointmentResponse(
         String petName,
         String petSpecies,
         String petPhotoUrl,
+        String petBreed,
+        String petBirthday,
 
         /* ── Veterinario ── */
         Long vetId,
         String vetName,
         String vetPhotoUrl,
-
 
          String notes
 ) {}
