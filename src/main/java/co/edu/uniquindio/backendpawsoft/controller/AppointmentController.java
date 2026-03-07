@@ -77,7 +77,6 @@ public class AppointmentController {
         return ResponseEntity.noContent().build();
     }
 
-    // En AdminUserController o mejor en un AppointmentController
     @GetMapping("/slots")
     public ResponseEntity<List<String>> getOccupiedSlots(
             @RequestParam Long vetId,
