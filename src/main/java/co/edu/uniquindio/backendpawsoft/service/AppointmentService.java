@@ -47,8 +47,6 @@ public class AppointmentService {
     private final UserRepository userRepository;
     private final PetRepository petRepository;
 
-
-
     /**
      * Crea una nueva cita para el cliente autenticado.
      * <p>
@@ -341,6 +339,8 @@ public class AppointmentService {
                 a.getPet()    != null ? a.getPet().getName()     : "—",
                 a.getPet()    != null ? a.getPet().getSpecies()  : "—",
                 a.getPet()    != null ? a.getPet().getPhotoUrl() : null,
+                a.getPet()    != null ? a.getPet().getBreed()    : "—",
+                a.getPet()    != null ? a.getPet().getBirthDate(): null,      
                 a.getVet()    != null ? a.getVet().getId()       : null,
                 a.getVet()    != null ? a.getVet().getName()     : "—",
                 a.getVet()    != null ? a.getVet().getPhotoUrl() : null,
