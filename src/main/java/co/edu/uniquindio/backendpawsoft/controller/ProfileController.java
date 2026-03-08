@@ -11,10 +11,25 @@ import java.util.Map;
 
 /**
  * Controlador REST para gestión del perfil del usuario autenticado.
+ *
+ * Expone endpoints para:
+ * - Consultar datos del perfil actual
+ * - Solicitar código de verificación 2FA para cambios
+ * - Aplicar cambios de perfil tras validar el código
+ *
  * Todas las rutas requieren JWT válido (anyRequest().authenticated() en SecurityConfig).
  *
  * Proyecto: Pawsoft
- * Universidad del Quindío — Software III
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @RestController
 @RequestMapping("/api/profile")

@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.ProfileUpdateRequest;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
 import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
@@ -34,6 +35,7 @@ import java.util.Map;
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
  * Materia: Software III
  *
  * Autoras:
@@ -51,6 +53,7 @@ public class ProfileService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final TwoFactorService      twoFactorService;
     private final EmailService          emailService;
+    private final AuditLogService       auditLogService;
 
     // ── Solicitud de verificación ─────────────────────────────────────────────
 
@@ -119,11 +122,13 @@ public class ProfileService {
                 }
             });
             user.setEmail(request.getEmail());
+            auditLogService.log("PROFILE_UPDATE_EMAIL", "Usuario actualizó su correo", "USER", user.getId().intValue());
         }
 
         // ── Teléfono (opcional) ───────────────────────────────────────────────
         if (request.getPhone() != null && !request.getPhone().isBlank()) {
             user.setPhone(request.getPhone());
+            auditLogService.log("PROFILE_UPDATE_PHONE", "Usuario actualizó su teléfono", "USER", user.getId().intValue());
         }
 
         // ── Contraseña (opcional) ─────────────────────────────────────────────
@@ -134,6 +139,7 @@ public class ProfileService {
                 );
             }
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            auditLogService.log("PROFILE_UPDATE_PASSWORD", "Usuario actualizó su contraseña", "USER", user.getId().intValue());
         }
 
         userRepository.save(user);
