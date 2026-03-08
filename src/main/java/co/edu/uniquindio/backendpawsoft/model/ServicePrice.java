@@ -6,14 +6,26 @@ import lombok.*;
 import java.math.BigDecimal;
 
 /**
- * Tabla de precios base por tipo de servicio veterinario.
+ * Entidad que representa la tabla de precios base por tipo de servicio veterinario.
  *
- * El admin gestiona estos valores desde su panel.
+ * El administrador gestiona estos valores desde su panel.
  * La recepcionista puede ajustar el monto final al registrar el cobro.
  *
  * El campo {@code serviceType} debe coincidir con los valores del
  * campo {@code reason} de la entidad {@code Appointment}
  * (ej: "Consulta general", "Vacunación", "Cirugía", etc.)
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @Entity
 @Table(name = "service_prices")
