@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Controlador REST de pagos para el cliente — Pawsoft.
+ * Controlador REST de pagos para el rol de cliente.
  *
  * Expone únicamente las operaciones de solo lectura que un cliente
  * necesita en su dashboard:
@@ -25,8 +25,17 @@ import java.util.List;
  * no se acepta como parámetro para evitar que un cliente consulte
  * los pagos de otro usuario.
  *
- * Proyecto: Pawsoft — Universidad del Quindío — Software III
- * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @RestController
 @RequestMapping("/api/cliente/payments")

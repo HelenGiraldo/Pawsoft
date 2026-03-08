@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Endpoints de pagos para el panel de la recepcionista.
+ * Controlador REST de pagos para el rol de recepcionista.
  *
  * Flujo principal:
  * 1. GET /prices  → obtiene lista de servicios con precio base
@@ -23,8 +23,17 @@ import java.util.List;
  * 4. PUT /{id}/pay → confirma el cobro en efectivo (PENDING → PAID)
  * 5. GET /appointment/{appointmentId} → consulta el pago de una cita
  *
- * Proyecto: Pawsoft — Software III
- * Autoras: Valentina Porras · Helen Xiomara Giraldo
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @RestController
 @RequestMapping("/api/recepcionista/payments")

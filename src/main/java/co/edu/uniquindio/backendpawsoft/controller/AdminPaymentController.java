@@ -10,16 +10,25 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Endpoints de pagos y precios para el panel de administración.
+ * Controlador REST de pagos y precios para el panel de administración.
  *
- * Responsabilidades del admin:
+ * Responsabilidades del administrador:
  * - Ver todos los pagos y estadísticas financieras
  * - Revertir pagos confirmados (corrección de errores)
  * - Gestionar la tabla de precios de servicios (CRUD)
  * - Ver historial de pagos de un cliente específico
  *
- * Proyecto: Pawsoft — Software III
- * Autoras: Valentina Porras · Helen Xiomara Giraldo
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @RestController
 @RequestMapping("/api/admin/payments")
