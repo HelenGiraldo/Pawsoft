@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
- * Registro de pago en efectivo asociado a una cita veterinaria.
+ * Entidad que representa un registro de pago en efectivo asociado a una cita veterinaria.
  *
  * DISEÑO CLAVE — Instantánea de datos:
  * Se almacena una copia de los datos relevantes de la cita en el momento
@@ -21,6 +21,18 @@ import java.time.LocalTime;
  * Solo puede existir UN pago por cita (unicidad por appointmentId).
  * Si la cita se elimina, el pago queda huérfano (appointmentId = null)
  * pero NUNCA se borra — es un registro contable permanente.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @Entity
 @Table(
