@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.PaymentStatus;
 import co.edu.uniquindio.backendpawsoft.model.Payment;
@@ -20,16 +21,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Servicio que centraliza toda la lógica de negocio de pagos.
+ * Servicio que centraliza toda la lógica de negocio relacionada con pagos.
  *
  * Responsabilidades:
  * - CRUD de pagos (crear, confirmar cobro, revertir)
- * - CRUD de precios de servicios (solo admin)
- * - Estadísticas de ingresos para el panel de admin
+ * - CRUD de precios de servicios (solo administrador)
+ * - Estadísticas de ingresos para el panel de administrador
  * - Historial de pagos por cliente
  *
- * Proyecto: Pawsoft — Software III
- * Autoras: Valentina Porras · Helen Xiomara Giraldo
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @Service
 @RequiredArgsConstructor
@@ -37,6 +47,7 @@ public class PaymentService {
 
     private final PaymentRepository      paymentRepository;
     private final ServicePriceRepository servicePriceRepository;
+    private final AuditLogService        auditLogService;
 
     /* ════════════════════════════════════════════════════════════
        PAGOS
@@ -74,7 +85,11 @@ public class PaymentService {
                 .createdAt      (LocalDateTime.now())
                 .build();
 
-        return toResponse(paymentRepository.save(payment));
+        Payment saved = paymentRepository.save(payment);
+
+        auditLogService.log("PAYMENT_CREATE", "Pago registrado para cita #" + req.getAppointmentId(), "PAYMENT", saved.getId().intValue());
+
+        return toResponse(saved);
     }
 
     /**
@@ -92,7 +107,11 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.PAID);
         payment.setPaymentDate(LocalDateTime.now());
 
-        return toResponse(paymentRepository.save(payment));
+        PaymentResponse response = toResponse(paymentRepository.save(payment));
+
+        auditLogService.log("PAYMENT_CONFIRMED", "Pago confirmado como pagado", "PAYMENT", paymentId.intValue());
+
+        return response;
     }
 
     /**
@@ -103,7 +122,12 @@ public class PaymentService {
         Payment payment = findOrThrow(paymentId);
         payment.setStatus(PaymentStatus.PENDING);
         payment.setPaymentDate(null);
-        return toResponse(paymentRepository.save(payment));
+
+        PaymentResponse response = toResponse(paymentRepository.save(payment));
+
+        auditLogService.log("PAYMENT_REVERTED", "Pago revertido a pendiente", "PAYMENT", paymentId.intValue());
+
+        return response;
     }
 
     /** Lista todos los pagos, más recientes primero. */
@@ -162,7 +186,11 @@ public class PaymentService {
         sp.setDescription(req.getDescription());
         sp.setActive(req.isActive());
 
-        return toPriceResponse(servicePriceRepository.save(sp));
+        ServicePriceResponse response = toPriceResponse(servicePriceRepository.save(sp));
+
+        auditLogService.log("PRICE_UPSERT", "Precio de servicio creado/actualizado: " + req.getServiceType(), "SERVICE_PRICE", response.getId().intValue());
+
+        return response;
     }
 
     @Transactional
@@ -170,6 +198,8 @@ public class PaymentService {
         if (!servicePriceRepository.existsById(id))
             throw new NoSuchElementException("Precio de servicio no encontrado: " + id);
         servicePriceRepository.deleteById(id);
+
+        auditLogService.log("PRICE_DELETE", "Precio de servicio eliminado", "SERVICE_PRICE", id.intValue());
     }
 
     /**
