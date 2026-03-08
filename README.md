@@ -243,7 +243,7 @@ Se utiliza arquitectura en capas:
 - **Mockito**
 - **Spring Boot Test**
 - **H2 Database** (tests)
-- 88 pruebas unitarias implementadas
+- **32 pruebas unitarias** implementadas (100% exitosas)
 
 ## Herramientas de Desarrollo
 - **Lombok** (reducción de boilerplate)
@@ -377,33 +377,35 @@ Se utiliza arquitectura en capas:
 
 ## Variables de Entorno Requeridas
 
+El proyecto requiere las siguientes variables de entorno. **NUNCA** incluyas valores reales en el repositorio.
+
 ```properties
 # Base de datos
-spring.datasource.url=jdbc:mysql://localhost:3306/pawsoft
-spring.datasource.username=tu_usuario
-spring.datasource.password=tu_password
+spring.datasource.url=jdbc:mysql://[HOST]:[PORT]/[DATABASE_NAME]
+spring.datasource.username=[DB_USERNAME]
+spring.datasource.password=[DB_PASSWORD]
 
 # JWT
-jwt.secret=tu_secret_key_muy_segura
+jwt.secret=[GENERATE_SECURE_SECRET_KEY]
 jwt.expiration=86400000
 
 # Email (SMTP)
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=tu_email@gmail.com
-spring.mail.password=tu_app_password
+spring.mail.host=[SMTP_HOST]
+spring.mail.port=[SMTP_PORT]
+spring.mail.username=[EMAIL_ADDRESS]
+spring.mail.password=[EMAIL_APP_PASSWORD]
 
 # Cloudinary
-cloudinary.cloud-name=tu_cloud_name
-cloudinary.api-key=tu_api_key
-cloudinary.api-secret=tu_api_secret
+cloudinary.cloud-name=[YOUR_CLOUD_NAME]
+cloudinary.api-key=[YOUR_API_KEY]
+cloudinary.api-secret=[YOUR_API_SECRET]
 
 # reCAPTCHA
-recaptcha.secret=tu_recaptcha_secret
+recaptcha.secret=[YOUR_RECAPTCHA_SECRET]
 recaptcha.verify-url=https://www.google.com/recaptcha/api/siteverify
 
 # Frontend URL (CORS)
-frontend.url=http://localhost:8100
+frontend.url=[YOUR_FRONTEND_URL]
 ```
 
 ## Ejecución Local
@@ -414,8 +416,8 @@ git clone https://github.com/HelenGiraldo/Pawsoft.git
 cd backendPawsoft
 
 # Configurar variables de entorno
-cp application.properties.example application.properties
-# Editar application.properties con tus credenciales
+# Crea un archivo application-local.properties con tus credenciales
+# NUNCA lo subas a Git (ya está en .gitignore)
 
 # Compilar y ejecutar
 ./mvnw spring-boot:run
@@ -430,6 +432,16 @@ java -jar target/backendpawsoft-0.0.1-SNAPSHOT.jar
 ```bash
 ./mvnw test
 ```
+
+## Notas de Seguridad
+
+⚠️ **IMPORTANTE**:
+- Nunca subas archivos con credenciales reales al repositorio
+- Usa variables de entorno o archivos de configuración locales
+- El archivo `application.properties` con valores reales debe estar en `.gitignore`
+- Genera claves JWT seguras (mínimo 256 bits)
+- Usa contraseñas de aplicación para SMTP, no tu contraseña personal
+- Mantén actualizadas las dependencias de seguridad
 
 ---
 
@@ -458,7 +470,14 @@ java -jar target/backendpawsoft-0.0.1-SNAPSHOT.jar
 - Sistema de citas
 - Sistema de pagos
 - Auditoría completa
-- 88 pruebas unitarias
+- Gestión de clientes por recepcionista
+- 32 pruebas unitarias (100% exitosas)
+
+📊 **Cobertura de Tests**:
+- PaymentService: 14 tests
+- ProfileService: 10 tests
+- RecaptchaService: 7 tests
+- ApplicationTests: 1 test
 
 🚧 **En Desarrollo**:
 - Historial clínico

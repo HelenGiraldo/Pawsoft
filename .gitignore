@@ -34,3 +34,10 @@ build/
 
 ### Documentation ###
 docs/
+
+### Configuration with sensitive data ###
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+!src/main/resources/application-test.properties
+*.env
+.env.*
