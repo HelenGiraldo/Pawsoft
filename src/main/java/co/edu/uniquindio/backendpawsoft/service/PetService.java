@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.PetRequest;
 import co.edu.uniquindio.backendpawsoft.dto.PetResponse;
 import co.edu.uniquindio.backendpawsoft.model.Pet;
@@ -14,6 +15,7 @@ import java.util.List;
 public class PetService {
 
     private final PetRepository petRepository;
+    private final AuditLogService auditLogService;
 
     public List<PetResponse> getByOwner(String email) {
         return petRepository.findByOwnerEmail(email)
@@ -32,7 +34,12 @@ public class PetService {
                 .ownerEmail(ownerEmail)
                 .photoUrl(req.getPhotoUrl())
                 .build();
-        return toResponse(petRepository.save(pet));
+
+        Pet saved = petRepository.save(pet);
+
+        auditLogService.log("PET_CREATE", "Cliente registró nueva mascota", "PET", saved.getId().intValue());
+
+        return toResponse(saved);
     }
 
     public PetResponse update(Long id, PetRequest req, String ownerEmail) {
@@ -47,7 +54,12 @@ public class PetService {
         pet.setSex(req.getSex());
         if (req.getPhotoUrl() != null && !req.getPhotoUrl().isBlank())
             pet.setPhotoUrl(req.getPhotoUrl());
-        return toResponse(petRepository.save(pet));
+
+        Pet saved = petRepository.save(pet);
+
+        auditLogService.log("PET_UPDATE", "Cliente actualizó datos de mascota", "PET", id.intValue());
+
+        return toResponse(saved);
     }
 
     public void delete(Long id, String ownerEmail) {
@@ -58,6 +70,8 @@ public class PetService {
             throw new RuntimeException("No tienes permiso para eliminar esta mascota");
 
         petRepository.delete(pet);
+
+        auditLogService.log("PET_DELETE", "Cliente eliminó mascota", "PET", id.intValue());
     }
 
     private PetResponse toResponse(Pet pet) {

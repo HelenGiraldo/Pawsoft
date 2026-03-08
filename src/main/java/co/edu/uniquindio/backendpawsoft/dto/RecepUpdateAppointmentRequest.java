@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 /**
  * DTO para que el recepcionista edite una cita existente.
  * Permite cambiar fecha, hora, veterinario y motivo.
@@ -16,7 +18,9 @@ import java.time.LocalTime;
 public record RecepUpdateAppointmentRequest(
 
         @NotNull LocalDate date,
-        @NotNull LocalTime time,
+        @NotNull
+        @JsonFormat(pattern = "HH:mm")
+        LocalTime time,
         @NotNull Long vetId,
         String reason,
         String notes

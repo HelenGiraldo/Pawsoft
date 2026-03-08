@@ -4,7 +4,10 @@ import co.edu.uniquindio.backendpawsoft.dto.StaffUserRequest;
 import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
 import co.edu.uniquindio.backendpawsoft.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import co.edu.uniquindio.backendpawsoft.model.User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -77,7 +80,14 @@ public class AdminUserController {
 
     /** Elimina */
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser) {
+
+        if (currentUser.getId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         adminUserService.delete(id);
         return ResponseEntity.noContent().build();
     }
@@ -87,6 +97,4 @@ public class AdminUserController {
     public ResponseEntity<List<UserResponse>> getVetsForClients() {
         return ResponseEntity.ok(adminUserService.getVeterinarians());
     }
-
-
 }

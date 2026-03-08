@@ -142,6 +142,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**")
                         .hasAuthority("ROLE_ADMIN")
 
+
+
                         // ── Módulo de citas: recepcionista ───────────────────────────
                         // Listar, crear, editar, confirmar, marcar inasistencia y
                         // cancelar citas. El ADMIN también tiene acceso para soporte.
@@ -159,6 +161,7 @@ public class SecurityConfig {
                         // Rutas /api/recepcionista/** no cubiertas arriba.
                         .requestMatchers("/api/recepcionista/**")
                         .hasAuthority("ROLE_RECEPCIONISTA")
+
 
                         // ── Veterinario ──────────────────────────────────────────────
                         .requestMatchers("/api/veterinario/**")

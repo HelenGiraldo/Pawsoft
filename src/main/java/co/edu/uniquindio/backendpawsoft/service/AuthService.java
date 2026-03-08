@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.LoginRequest;
 import co.edu.uniquindio.backendpawsoft.dto.LoginResponse;
 import co.edu.uniquindio.backendpawsoft.enums.Role;
@@ -61,6 +62,7 @@ public class AuthService {
     private final TwoFactorService twoFactorService;
     private final EmailService emailService;
     private final RecaptchaService recaptchaService;
+    private final AuditLogService auditLogService;
 
     // ── Fase 1: Login ─────────────────────────────────────────────────────────
 
@@ -95,7 +97,7 @@ public class AuthService {
         }
 
         User user = userRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new NotFoundException("Credenciales inválidas"));
+                .orElseThrow(() -> new NotFoundException("Credenciales inválidas. Verifica tu correo y contraseña"));
 
         // Verifica si la cuenta está bloqueada temporalmente
         validateAccountLock(user);
@@ -103,7 +105,8 @@ public class AuthService {
         // Verifica contraseña; si falla registra el intento y bloquea si corresponde
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             handleFailedAttempt(user);
-            throw new UnauthorizedException("Credenciales inválidas");
+            auditLogService.log("USER_LOGIN_FAILED", "Intento de login fallido", "USER", user.getId().intValue());
+            throw new UnauthorizedException("Credenciales inválidas. Verifica tu correo y contraseña");
         }
 
         // Verifica que el usuario haya confirmado su correo
@@ -118,6 +121,8 @@ public class AuthService {
         Codigo2FA codigo = twoFactorService.crearCodigo(user, ipOrigen);
         emailService.enviarCodigo2FA(user.getEmail(), codigo.getCodigo());
 
+        auditLogService.log("USER_LOGIN", "Inicio de sesión exitoso, código 2FA enviado", "USER", user.getId().intValue());
+
         return new LoginResponse(
                 "Código de verificación enviado al correo",
                 user.getEmail(),
@@ -126,8 +131,6 @@ public class AuthService {
                 false
         );
     }
-
-
 
     /**
      * Segunda fase del login: valida el código 2FA ingresado por el usuario.
@@ -158,6 +161,8 @@ public class AuthService {
         // Los usuarios distintos a ROLE_CLIENTE deben cambiar la contraseña en el primer acceso
         boolean mustChange = user.isPrimerAcceso()
                 && user.getRole() != Role.ROLE_CLIENTE;
+
+        auditLogService.log("USER_VERIFY_2FA", "Verificación 2FA completada", "USER", user.getId().intValue());
 
         return new LoginResponse(
                 "Autenticación completa",
@@ -196,6 +201,8 @@ public class AuthService {
         Codigo2FA codigo = twoFactorService.crearCodigo(user, ipOrigen);
         emailService.enviarCodigo2FA(user.getEmail(), codigo.getCodigo());
 
+        auditLogService.log("USER_RESEND_2FA", "Reenvío de código 2FA", "USER", user.getId().intValue());
+
         return new LoginResponse(
                 "Código de verificación reenviado al correo",
                 user.getEmail(),
@@ -204,7 +211,6 @@ public class AuthService {
                 false
         );
     }
-
 
     /**
      * Cambia la contraseña del usuario durante su primer inicio de sesión.
@@ -247,6 +253,8 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtService.generateToken(user);
+
+        auditLogService.log("USER_CHANGE_PASSWORD_FIRST", "Cambio de contraseña en primer acceso", "USER", user.getId().intValue());
 
         return new LoginResponse(
                 "Contraseña cambiada exitosamente",
