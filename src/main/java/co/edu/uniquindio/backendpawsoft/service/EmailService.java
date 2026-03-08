@@ -98,7 +98,7 @@ public class EmailService {
 
     // ── Verificación de cuenta ───────────────────────────────────────────────
     public void sendVerificationEmail(String to, String token) {
-        String link = "http://localhost:8080/auth/verify-email?token=" + token;
+        String link = "https://api.pawsoft.online/auth/verify-email?token=" + token;
 
         String contenido = """
             <h2 style="color:#2d6a4f;margin:0 0 12px;">¡Bienvenido a PawSoft! 🎉</h2>
