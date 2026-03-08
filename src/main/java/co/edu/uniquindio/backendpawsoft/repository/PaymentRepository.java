@@ -11,21 +11,35 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio JPA para la entidad Payment.
+ *
+ * Proporciona consultas personalizadas para:
+ * - Búsqueda de pagos por cita, cliente y estado
+ * - Cálculo de ingresos por fecha, rango y concepto
+ * - Estadísticas financieras para el panel de administración
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
+ */
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByAppointmentId(Long appointmentId);
-
     boolean existsByAppointmentId(Long appointmentId);
-
     List<Payment> findAllByOrderByCreatedAtDesc();
-
     List<Payment> findByStatusOrderByCreatedAtDesc(PaymentStatus status);
-
     List<Payment> findByClientEmailOrderByCreatedAtDesc(String clientEmail);
-
     long countByStatus(PaymentStatus status);
-
-    /* ── Consultas para reportes del admin ────────────────────────── */
+    void deleteByClientEmail(String clientEmail);  // ← nuevo
 
     @Query("""
         SELECT COALESCE(SUM(p.amount), 0)
@@ -47,10 +61,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'PAID'")
     BigDecimal sumAllPaid();
 
-    /**
-     * Agrupación de ingresos por concepto en un rango de fechas.
-     * Retorna Object[] con [0]=concept (String), [1]=total (BigDecimal).
-     */
     @Query("""
         SELECT p.concept, COALESCE(SUM(p.amount), 0)
         FROM Payment p
@@ -62,4 +72,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         """)
     List<Object[]> revenueByConceptBetween(@Param("from") LocalDate from,
                                            @Param("to") LocalDate to);
+
+    void deleteByPetName(String petName);
 }
