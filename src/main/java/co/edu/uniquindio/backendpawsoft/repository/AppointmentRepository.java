@@ -90,4 +90,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      * @return lista de citas del veterinario ordenadas por fecha y hora
      */
     List<Appointment> findByVetIdOrderByDateAscTimeAsc(Long vetId);
+
+    void deleteByClientId(Long clientId);
+
+    void deleteByPetId(Long petId);
 }

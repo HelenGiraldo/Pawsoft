@@ -94,4 +94,11 @@ public class RecepcionistaAppointmentController {
         appointmentService.recepCancelAppointment(id, request);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/slots")
+    public ResponseEntity<List<String>> getSlots(
+            @RequestParam Long vetId,
+            @RequestParam String date) {
+        return ResponseEntity.ok(appointmentService.getOccupiedSlots(vetId, date));
+    }
 }

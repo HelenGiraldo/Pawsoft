@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.AdminPetResponse;
 import co.edu.uniquindio.backendpawsoft.dto.StaffUserRequest;
 import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
@@ -30,6 +31,7 @@ public class AdminUserService {
     private final UserRepository userRepository;
     private final UserService userService; // reutiliza createStaffUser()
     private final PetRepository petRepository;
+    private final AuditLogService auditLogService;
 
     /** Lista todos los usuarios que NO son clientes */
     public List<UserResponse> getStaffUsers() {
@@ -63,6 +65,8 @@ public class AdminUserService {
             });
         }
 
+        auditLogService.log("ADMIN_CREATE_STAFF", "Admin creó usuario staff: " + req.getRole(), "USER", created.getId().intValue());
+
         return created;
     }
 
@@ -76,7 +80,11 @@ public class AdminUserService {
         if (req.getPhotoUrl() != null && !req.getPhotoUrl().isBlank())
             user.setPhotoUrl(req.getPhotoUrl());
 
-        return toResponse(userRepository.save(user));
+        UserResponse response = toResponse(userRepository.save(user));
+
+        auditLogService.log("ADMIN_UPDATE_STAFF", "Admin actualizó usuario staff", "USER", id.intValue());
+
+        return response;
     }
 
     /** Activa o desactiva un usuario */
@@ -85,6 +93,9 @@ public class AdminUserService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
         user.setEnabled(!user.isEnabled());
         userRepository.save(user);
+
+        String action = user.isEnabled() ? "ADMIN_ENABLE_USER" : "ADMIN_DISABLE_USER";
+        auditLogService.log(action, "Admin cambió estado del usuario", "USER", id.intValue());
     }
 
     /** Elimina un usuario por id */
@@ -92,6 +103,8 @@ public class AdminUserService {
         if (!userRepository.existsById(id))
             throw new RuntimeException("Usuario no encontrado: " + id);
         userRepository.deleteById(id);
+
+        auditLogService.log("ADMIN_DELETE_USER", "Admin eliminó usuario", "USER", id.intValue());
     }
 
     private UserResponse toResponse(User u) {
@@ -135,6 +148,4 @@ public class AdminUserService {
                 })
                 .toList();
     }
-
-
 }

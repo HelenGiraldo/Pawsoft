@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.AppointmentStatus;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
@@ -46,6 +47,7 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final PetRepository petRepository;
+    private final AuditLogService auditLogService;
 
     /**
      * Crea una nueva cita para el cliente autenticado.
@@ -98,6 +100,8 @@ public class AppointmentService {
                 .build();
 
         Appointment saved = appointmentRepository.save(appointment);
+
+        auditLogService.log("APPOINTMENT_CREATE", "Cita creada por cliente", "APPOINTMENT", saved.getId().intValue());
 
         return mapToResponse(saved);
     }
@@ -160,6 +164,8 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
+
+        auditLogService.log("APPOINTMENT_CANCEL", "Cita cancelada por cliente", "APPOINTMENT", appointmentId.intValue());
     }
 
     /**
@@ -189,6 +195,7 @@ public class AppointmentService {
                 .map(a -> a.getTime().toString())
                 .toList();
     }
+
     /**
      * Lista TODAS las citas del sistema, enriquecidas con datos
      * de cliente, mascota y veterinario para el panel del recepcionista.
@@ -236,7 +243,11 @@ public class AppointmentService {
                 .pet(pet)
                 .build();
 
-        return mapToRecepResponse(appointmentRepository.save(appointment));
+        RecepAppointmentResponse response = mapToRecepResponse(appointmentRepository.save(appointment));
+
+        auditLogService.log("APPOINTMENT_CREATE_RECEP", "Cita creada por recepcionista", "APPOINTMENT", response.id().intValue());
+
+        return response;
     }
 
     /**
@@ -270,7 +281,11 @@ public class AppointmentService {
         if (request.reason() != null) appointment.setReason(request.reason());
         if (request.notes()  != null) appointment.setNotes(request.notes());
 
-        return mapToRecepResponse(appointmentRepository.save(appointment));
+        RecepAppointmentResponse response = mapToRecepResponse(appointmentRepository.save(appointment));
+
+        auditLogService.log("APPOINTMENT_UPDATE", "Cita actualizada por recepcionista", "APPOINTMENT", id.intValue());
+
+        return response;
     }
 
     /**
@@ -283,6 +298,8 @@ public class AppointmentService {
                 .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
         apt.setStatus(AppointmentStatus.CONFIRMED);
         appointmentRepository.save(apt);
+
+        auditLogService.log("APPOINTMENT_CONFIRM", "Cita confirmada", "APPOINTMENT", id.intValue());
     }
 
     /**
@@ -295,6 +312,8 @@ public class AppointmentService {
                 .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
         apt.setStatus(AppointmentStatus.NO_SHOW);
         appointmentRepository.save(apt);
+
+        auditLogService.log("APPOINTMENT_NO_SHOW", "Cita marcada como no asistida", "APPOINTMENT", id.intValue());
     }
 
     /**
@@ -316,6 +335,8 @@ public class AppointmentService {
         apt.setStatus(AppointmentStatus.CANCELLED);
         apt.setCancelReason(request != null ? request.cancelReason() : null);
         appointmentRepository.save(apt);
+
+        auditLogService.log("APPOINTMENT_CANCEL_RECEP", "Cita cancelada por recepcionista", "APPOINTMENT", id.intValue());
     }
 
     /**
@@ -340,7 +361,7 @@ public class AppointmentService {
                 a.getPet()    != null ? a.getPet().getSpecies()  : "—",
                 a.getPet()    != null ? a.getPet().getPhotoUrl() : null,
                 a.getPet()    != null ? a.getPet().getBreed()    : "—",
-                a.getPet()    != null ? a.getPet().getBirthDate(): null,      
+                a.getPet()    != null ? a.getPet().getBirthDate(): null,
                 a.getVet()    != null ? a.getVet().getId()       : null,
                 a.getVet()    != null ? a.getVet().getName()     : "—",
                 a.getVet()    != null ? a.getVet().getPhotoUrl() : null,

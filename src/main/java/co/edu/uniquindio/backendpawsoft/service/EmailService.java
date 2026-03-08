@@ -117,7 +117,7 @@ public class EmailService {
               </a>
             </div>
             <p style="color:#868e96;font-size:13px;text-align:center;margin:0;">
-              Este enlace expira en <strong>24 horas</strong>.
+              Este enlace expira en <strong>1 hora</strong>.
             </p>
             """.formatted(link);
 
@@ -139,7 +139,7 @@ public class EmailService {
               </div>
             </div>
             <p style="color:#868e96;font-size:13px;text-align:center;margin:0;">
-              Expira en <strong> 3 minutos</strong>. No compartas este código con nadie.
+              Expira en <strong>3 minutos</strong>. No compartas este código con nadie.
             </p>
             """.formatted(codigo);
 
@@ -190,7 +190,7 @@ public class EmailService {
               </a>
             </div>
             <p style="color:#868e96;font-size:13px;text-align:center;margin:0;">
-              Este enlace expira en <strong>5 minutos</strong>.
+              Este enlace expira en <strong>30 minutos</strong>.
               Si no solicitaste este cambio, ignora este correo.
             </p>
             """.formatted(resetLink);

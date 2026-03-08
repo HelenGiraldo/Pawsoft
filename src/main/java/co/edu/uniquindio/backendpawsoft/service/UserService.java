@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.UserRequest;
 import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
 import co.edu.uniquindio.backendpawsoft.enums.Role;
@@ -42,6 +43,7 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final RecaptchaService recaptchaService;
+    private final AuditLogService auditLogService;
 
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
@@ -62,7 +64,6 @@ public class UserService implements UserDetailsService {
      */
     public UserResponse createUser(UserRequest userRequest) {
 
-        // ── Validar reCAPTCHA antes de cualquier operación ──
         if (!recaptchaService.isValid(userRequest.getRecaptchaToken())) {
             throw new UnauthorizedException("Verificación reCAPTCHA fallida. Intenta de nuevo.");
         }
@@ -88,11 +89,13 @@ public class UserService implements UserDetailsService {
                 EmailVerificationToken.builder()
                         .token(token)
                         .user(savedUser)
-                        .expirationDate(LocalDateTime.now().plusHours(24))
+                        .expirationDate(LocalDateTime.now().plusHours(1))
                         .build();
 
         emailVerificationTokenRepository.save(verificationToken);
         emailService.sendVerificationEmail(savedUser.getEmail(), token);
+
+        auditLogService.log("USER_CREATE", "Nuevo cliente registrado", "USER", savedUser.getId().intValue());
 
         return mapToResponse(savedUser);
     }
@@ -102,6 +105,7 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("Usuario no encontrado con ID: " + id);
         }
         userRepository.deleteById(id);
+        auditLogService.log("USER_DELETE", "Usuario eliminado", "USER", id.intValue());
     }
 
     public UserResponse updateUser(Long id, UserRequest userUpdated) {
@@ -126,6 +130,9 @@ public class UserService implements UserDetailsService {
         existingUser.setPassword(passwordEncoder.encode(userUpdated.getPassword()));
 
         User savedUser = userRepository.save(existingUser);
+
+        auditLogService.log("USER_UPDATE", "Usuario actualizado", "USER", id.intValue());
+
         return mapToResponse(savedUser);
     }
 
@@ -173,6 +180,8 @@ public class UserService implements UserDetailsService {
         User savedUser = userRepository.save(user);
         emailService.sendTemporaryPassword(email, passwordTemporal);
 
+        auditLogService.log("STAFF_CREATE", "Usuario staff creado: " + role.name(), "USER", savedUser.getId().intValue());
+
         return mapToResponse(savedUser);
     }
 
@@ -191,5 +200,52 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
 
         emailVerificationTokenRepository.delete(verificationToken);
+
+        auditLogService.log("USER_VERIFY_EMAIL", "Correo verificado", "USER", user.getId().intValue());
+    }
+
+    // ── Reenvío de verificación de correo ────────────────────────────────────
+
+    /**
+     * Reenvía el correo de verificación a un usuario que aún no ha activado su cuenta.
+     *
+     * Pasos:
+     * 1. Busca el usuario por email — respuesta silenciosa si no existe (evita enumeración).
+     * 2. Si la cuenta ya está habilitada, no hace nada.
+     * 3. Elimina el token anterior si existía, para evitar tokens huérfanos en BD.
+     * 4. Genera un nuevo token con expiración de 1 hora y lo envía por correo.
+     *
+     * @param email correo del usuario que solicita el reenvío
+     */
+    public void reenviarVerificacion(String email) {
+
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        // Respuesta silenciosa — no revelamos si el correo existe o no
+        if (optionalUser.isEmpty()) return;
+
+        User user = optionalUser.get();
+
+        // Si ya está verificado, no hay nada que reenviar
+        if (user.isEnabled()) return;
+
+        // Elimina el token anterior para no dejar registros huérfanos en BD
+        emailVerificationTokenRepository.findByUser(user)
+                .ifPresent(emailVerificationTokenRepository::delete);
+
+        // Genera y persiste un nuevo token con expiración de 1 hora
+        String nuevoToken = UUID.randomUUID().toString();
+
+        EmailVerificationToken verificationToken =
+                EmailVerificationToken.builder()
+                        .token(nuevoToken)
+                        .user(user)
+                        .expirationDate(LocalDateTime.now().plusHours(1))
+                        .build();
+
+        emailVerificationTokenRepository.save(verificationToken);
+        emailService.sendVerificationEmail(user.getEmail(), nuevoToken);
+
+        auditLogService.log("USER_RESEND_VERIFICATION", "Reenvío de correo de verificación", "USER", user.getId().intValue());
     }
 }

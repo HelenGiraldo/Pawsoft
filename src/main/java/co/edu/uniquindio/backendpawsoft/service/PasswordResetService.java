@@ -1,6 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
-
+import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
 import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
 import co.edu.uniquindio.backendpawsoft.model.PasswordResetToken;
@@ -26,18 +26,17 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-
+    private final AuditLogService auditLogService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    private static final int TOKEN_EXPIRATION_MINUTES = 5;
+    private static final int TOKEN_EXPIRATION_MINUTES = 30;
 
     /**
      * Genera un token de recuperación y lo envía por correo.
      */
     public void requestPasswordReset(String email) {
-
 
         Optional<User> optionalUser = userRepository.findByEmail(email);
 
@@ -64,6 +63,8 @@ public class PasswordResetService {
                 user.getEmail(),
                 resetLink
         );
+
+        auditLogService.log("USER_PASSWORD_RESET_REQUEST", "Solicitud de recuperación de contraseña", "USER", user.getId().intValue());
     }
 
     /**
@@ -90,6 +91,8 @@ public class PasswordResetService {
 
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
+
+        auditLogService.log("USER_PASSWORD_RESET", "Contraseña restablecida exitosamente", "USER", user.getId().intValue());
     }
 
     /**
