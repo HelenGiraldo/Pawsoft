@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Clase de configuración de seguridad de la aplicación.
@@ -90,20 +91,23 @@ public class SecurityConfig {
      * Cada petición debe incluir el token JWT en el header:
      *   Authorization: Bearer <token>
      *
-     * @param http                    objeto de configuración de seguridad HTTP
-     * @param jwtAuthenticationFilter filtro que valida JWT antes del filtro
-     *                                estándar de usuario/contraseña
+     * @param http                      objeto de configuración de seguridad HTTP
+     * @param jwtAuthenticationFilter   filtro que valida JWT antes del filtro
+     *                                  estándar de usuario/contraseña
+     * @param corsConfigurationSource   fuente de configuración CORS compartida
+     *                                  con el CorsFilter
      * @return {@link SecurityFilterChain} configurado
      * @throws Exception si ocurre un error durante la construcción
      */
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CorsConfigurationSource corsConfigurationSource
     ) throws Exception {
 
         http
-                .cors(cors -> {})
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
@@ -115,6 +119,11 @@ public class SecurityConfig {
 
                         // ── Rutas públicas (sin autenticación) ───────────────────────
                         .requestMatchers("/auth/**").permitAll()
+
+                        // ── Actuator para Prometheus (sin autenticación) ─────────────
+                        // Solo expone /actuator/prometheus y /actuator/health.
+                        // No expone información sensible de la app.
+                        .requestMatchers("/actuator/**").permitAll()
 
                         // ── Rutas admin compartidas con recepcionista y/o cliente ────
                         // Se declaran ANTES del catch-all de /api/admin/**
@@ -142,8 +151,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**")
                         .hasAuthority("ROLE_ADMIN")
 
-
-
                         // ── Módulo de citas: recepcionista ───────────────────────────
                         // Listar, crear, editar, confirmar, marcar inasistencia y
                         // cancelar citas. El ADMIN también tiene acceso para soporte.
@@ -161,7 +168,6 @@ public class SecurityConfig {
                         // Rutas /api/recepcionista/** no cubiertas arriba.
                         .requestMatchers("/api/recepcionista/**")
                         .hasAuthority("ROLE_RECEPCIONISTA")
-
 
                         // ── Veterinario ──────────────────────────────────────────────
                         .requestMatchers("/api/veterinario/**")
