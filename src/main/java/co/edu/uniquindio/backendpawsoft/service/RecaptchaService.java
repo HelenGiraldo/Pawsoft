@@ -8,10 +8,15 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * Servicio encargado de validar el token de reCAPTCHA v2 con la API de Google.
+ * Servicio encargado de validar el token de reCAPTCHA v3 con la API de Google.
+ *
+ * Se utiliza para proteger los endpoints de registro y autenticación contra bots
+ * y ataques automatizados. El token es generado por el widget de reCAPTCHA en el
+ * frontend y validado aquí contra la API de verificación de Google.
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
+ * Programa: Ingeniería de Sistemas y Computación
  * Materia: Software III
  *
  * Autoras:
