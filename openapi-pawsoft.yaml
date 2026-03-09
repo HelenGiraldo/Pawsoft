@@ -1,0 +1,2469 @@
+openapi: 3.0.3
+info:
+  title: Pawsoft API
+  description: |
+    API REST completa del sistema de gestión veterinaria Pawsoft.
+    
+    **Proyecto**: Pawsoft - Sistema de Gestión Veterinaria
+    **Universidad**: Universidad del Quindío
+    **Programa**: Ingeniería de Sistemas y Computación
+    **Materia**: Software III
+    
+    **Autoras**:
+    - Valentina Porras Salazar
+    - Helen Xiomara Giraldo Libreros
+    
+    **Profesor**: Raúl Yulbraynner Rivera Gálvez
+    
+    ## Autenticación
+    La API utiliza JWT (JSON Web Tokens) para autenticación. Todos los endpoints protegidos requieren el header:
+    ```
+    Authorization: Bearer <token>
+    ```
+    
+    ## Roles del Sistema
+    - **ROLE_ADMIN**: Acceso completo al sistema
+    - **ROLE_VETERINARIO**: Gestión de citas asignadas
+    - **ROLE_RECEPCIONISTA**: Gestión de clientes, citas y pagos
+    - **ROLE_CLIENTE**: Auto-gestión de mascotas y citas
+    
+    ## Flujo de Autenticación 2FA
+    1. POST /auth/login → Envía código 2FA al correo
+    2. POST /auth/verify-2fa → Valida código y retorna JWT
+    
+  version: 1.0.0
+  contact:
+    name: Equipo Pawsoft
+    email: soporte@pawsoft.online
+  
+servers:
+  - url: https://api.pawsoft.online
+    description: Servidor de producción
+  - url: http://localhost:8080
+    description: Servidor de desarrollo local
+
+tags:
+  - name: Autenticación
+    description: Endpoints de login, 2FA, recuperación de contraseña y verificación de cuenta
+  - name: Usuarios
+    description: Gestión de usuarios del sistema
+  - name: Admin - Usuarios
+    description: Panel de administración de usuarios staff
+  - name: Admin - Pagos
+    description: Panel de administración de pagos y precios
+  - name: Recepcionista - Citas
+    description: Gestión de citas desde el panel de recepcionista
+  - name: Recepcionista - Clientes
+    description: Gestión de clientes y mascotas desde el panel de recepcionista
+  - name: Recepcionista - Pagos
+    description: Gestión de pagos desde el panel de recepcionista
+  - name: Cliente - Citas
+    description: Auto-gestión de citas del cliente
+  - name: Cliente - Mascotas
+    description: Auto-gestión de mascotas del cliente
+  - name: Cliente - Pagos
+    description: Consulta de pagos del cliente
+  - name: Veterinario - Citas
+    description: Consulta de citas asignadas al veterinario
+  - name: Perfil
+    description: Gestión del perfil del usuario autenticado
+
+paths:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AUTENTICACIÓN
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /auth/register:
+    post:
+      tags:
+        - Autenticación
+      summary: Registrar nuevo cliente
+      description: |
+        Crea una nueva cuenta de cliente en el sistema.
+        Envía un correo de verificación al email proporcionado.
+        Requiere validación de reCAPTCHA v2.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Datos inválidos o correo ya registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /auth/login:
+    post:
+      tags:
+        - Autenticación
+      summary: Iniciar sesión (Fase 1 - 2FA)
+      description: |
+        Valida credenciales y envía código 2FA al correo del usuario.
+        No retorna JWT todavía - requiere verificación del código.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Código 2FA enviado al correo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /auth/verify-2fa:
+    post:
+      tags:
+        - Autenticación
+      summary: Verificar código 2FA (Fase 2)
+      description: |
+        Valida el código 2FA enviado al correo y retorna el JWT.
+        Este es el paso final del proceso de autenticación.
+      operationId: verify2FA
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Autenticación exitosa - JWT retornado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Código inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /auth/resend-2fa:
+    post:
+      tags:
+        - Autenticación
+      summary: Reenviar código 2FA
+      description: Reenvía el código 2FA sin requerir contraseña nuevamente
+      operationId: resend2FA
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Código reenviado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+  
+  /auth/change-password-first:
+    post:
+      tags:
+        - Autenticación
+      summary: Cambiar contraseña en primer inicio
+      description: |
+        Permite cambiar la contraseña temporal asignada por el sistema.
+        Usado por staff creado por el administrador.
+      operationId: changePasswordFirst
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Contraseña actualizada - JWT retornado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+  
+  /auth/password-reset/request:
+    post:
+      tags:
+        - Autenticación
+      summary: Solicitar restablecimiento de contraseña
+      description: |
+        Envía un correo con enlace de recuperación.
+        Responde de forma genérica para no revelar si el correo existe.
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPasswordReset'
+      responses:
+        '200':
+          description: Solicitud procesada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                    example: "Si el correo existe, se ha enviado un enlace de recuperación."
+  
+  /auth/password-reset/confirm:
+    post:
+      tags:
+        - Autenticación
+      summary: Confirmar restablecimiento de contraseña
+      description: Establece nueva contraseña usando el token recibido por correo
+      operationId: confirmPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+      responses:
+        '200':
+          description: Contraseña actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Contraseña actualizada correctamente"
+  
+  /auth/verify-email:
+    get:
+      tags:
+        - Autenticación
+      summary: Verificar cuenta por correo
+      description: Activa la cuenta usando el token enviado al correo de registro
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cuenta verificada
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Cuenta verificada correctamente. Puedes cerrar esta ventana."
+  
+  /auth/resend-verification:
+    post:
+      tags:
+        - Autenticación
+      summary: Reenviar correo de verificación
+      description: Reenvía el enlace de verificación de cuenta
+      operationId: resendVerification
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Solicitud procesada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                    example: "Si el correo existe y no está verificado, se ha reenviado el enlace."
+
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ADMIN - USUARIOS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/admin/users:
+    get:
+      tags:
+        - Admin - Usuarios
+      summary: Listar usuarios staff
+      description: Retorna todos los usuarios staff (veterinarios y recepcionistas)
+      operationId: getStaffUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de usuarios staff
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+    
+    post:
+      tags:
+        - Admin - Usuarios
+      summary: Crear usuario staff
+      description: |
+        Crea un nuevo usuario staff (veterinario o recepcionista).
+        Genera contraseña temporal y la envía por correo.
+      operationId: createStaffUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffUserRequest'
+      responses:
+        '200':
+          description: Usuario staff creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+  
+  /api/admin/users/{id}:
+    put:
+      tags:
+        - Admin - Usuarios
+      summary: Actualizar usuario staff
+      description: Actualiza nombre y foto del usuario staff
+      operationId: updateStaffUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffUserRequest'
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    
+    delete:
+      tags:
+        - Admin - Usuarios
+      summary: Eliminar usuario staff
+      description: Elimina un usuario staff del sistema
+      operationId: deleteStaffUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Usuario eliminado
+        '403':
+          description: No puedes eliminarte a ti mismo
+  
+  /api/admin/users/{id}/toggle:
+    patch:
+      tags:
+        - Admin - Usuarios
+      summary: Activar/desactivar usuario
+      description: Cambia el estado enabled del usuario
+      operationId: toggleUserStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Estado actualizado
+  
+  /api/admin/veterinarians:
+    get:
+      tags:
+        - Admin - Usuarios
+      summary: Listar veterinarios activos
+      description: Retorna solo veterinarios con enabled=true
+      operationId: getVeterinarians
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de veterinarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+  
+  /api/admin/public/veterinarians:
+    get:
+      tags:
+        - Admin - Usuarios
+      summary: Listar veterinarios (público)
+      description: |
+        Endpoint accesible por clientes para agendar citas.
+        Retorna veterinarios activos.
+      operationId: getVeterinariansPublic
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de veterinarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+  
+  /api/admin/clients:
+    get:
+      tags:
+        - Admin - Usuarios
+      summary: Listar todos los clientes
+      description: Retorna todos los usuarios con rol ROLE_CLIENTE
+      operationId: getAllClients
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+  
+  /api/admin/pets:
+    get:
+      tags:
+        - Admin - Usuarios
+      summary: Listar todas las mascotas
+      description: Retorna todas las mascotas registradas en el sistema
+      operationId: getAllPets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de mascotas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PetResponse'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ADMIN - PAGOS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/admin/payments:
+    get:
+      tags:
+        - Admin - Pagos
+      summary: Listar todos los pagos
+      description: Retorna todos los pagos del sistema
+      operationId: getAllPayments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+  
+  /api/admin/payments/stats:
+    get:
+      tags:
+        - Admin - Pagos
+      summary: Estadísticas financieras
+      description: |
+        Retorna estadísticas completas:
+        - Ingresos por período (hoy, semana, mes, total)
+        - Ingresos por concepto de servicio
+        - Últimos 10 pagos confirmados
+      operationId: getPaymentStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas financieras
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatsResponse'
+  
+  /api/admin/payments/client/{email}:
+    get:
+      tags:
+        - Admin - Pagos
+      summary: Historial de pagos de un cliente
+      description: Retorna todos los pagos de un cliente específico
+      operationId: getPaymentsByClient
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Historial de pagos del cliente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+  
+  /api/admin/payments/{id}/revert:
+    put:
+      tags:
+        - Admin - Pagos
+      summary: Revertir pago a PENDING
+      description: |
+        Cambia un pago de PAID a PENDING.
+        Usado para corrección de errores.
+      operationId: revertPayment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pago revertido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+  
+  /api/admin/payments/prices:
+    get:
+      tags:
+        - Admin - Pagos
+      summary: Listar todos los precios
+      description: Retorna todos los precios configurados (activos e inactivos)
+      operationId: getAllPrices
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de precios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePriceResponse'
+    
+    post:
+      tags:
+        - Admin - Pagos
+      summary: Crear o actualizar precio
+      description: |
+        Si el serviceType ya existe, actualiza el precio.
+        Si no existe, crea uno nuevo.
+      operationId: upsertPrice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicePriceRequest'
+      responses:
+        '200':
+          description: Precio creado o actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePriceResponse'
+  
+  /api/admin/payments/prices/{id}:
+    delete:
+      tags:
+        - Admin - Pagos
+      summary: Eliminar precio
+      description: Elimina un precio de servicio del sistema
+      operationId: deletePrice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Precio eliminado
+
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # RECEPCIONISTA - CITAS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/recepcionista/appointments:
+    get:
+      tags:
+        - Recepcionista - Citas
+      summary: Listar todas las citas
+      description: Retorna todas las citas del sistema con datos completos
+      operationId: getAllAppointments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de citas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecepAppointmentResponse'
+    
+    post:
+      tags:
+        - Recepcionista - Citas
+      summary: Crear cita
+      description: Crea una nueva cita especificando el email del cliente
+      operationId: createAppointmentRecep
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepCreateAppointmentRequest'
+      responses:
+        '200':
+          description: Cita creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepAppointmentResponse'
+  
+  /api/recepcionista/appointments/{id}:
+    put:
+      tags:
+        - Recepcionista - Citas
+      summary: Editar cita
+      description: Actualiza fecha, hora, veterinario y motivo de una cita
+      operationId: updateAppointmentRecep
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepUpdateAppointmentRequest'
+      responses:
+        '200':
+          description: Cita actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecepAppointmentResponse'
+  
+  /api/recepcionista/appointments/{id}/confirm:
+    put:
+      tags:
+        - Recepcionista - Citas
+      summary: Confirmar cita
+      description: Cambia el estado de la cita a CONFIRMED
+      operationId: confirmAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Cita confirmada
+  
+  /api/recepcionista/appointments/{id}/no-show:
+    put:
+      tags:
+        - Recepcionista - Citas
+      summary: Marcar inasistencia
+      description: Cambia el estado de la cita a NO_SHOW
+      operationId: markNoShow
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Inasistencia marcada
+  
+  /api/recepcionista/appointments/{id}/cancel:
+    put:
+      tags:
+        - Recepcionista - Citas
+      summary: Cancelar cita
+      description: Cancela una cita con motivo opcional
+      operationId: cancelAppointmentRecep
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepCancelRequest'
+      responses:
+        '204':
+          description: Cita cancelada
+  
+  /api/recepcionista/appointments/slots:
+    get:
+      tags:
+        - Recepcionista - Citas
+      summary: Consultar horarios ocupados
+      description: Retorna las horas ocupadas de un veterinario en una fecha
+      operationId: getOccupiedSlotsRecep
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: vetId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-03-15"
+      responses:
+        '200':
+          description: Lista de horarios ocupados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "09:00:00"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # RECEPCIONISTA - CLIENTES
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/recepcionista/clients:
+    get:
+      tags:
+        - Recepcionista - Clientes
+      summary: Listar clientes
+      description: Retorna todos los clientes registrados
+      operationId: getClients
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+    
+    post:
+      tags:
+        - Recepcionista - Clientes
+      summary: Crear cliente
+      description: |
+        Crea un nuevo cliente.
+        Genera contraseña automática y la envía por correo.
+      operationId: createClient
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepCreateClientRequest'
+      responses:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+  
+  /api/recepcionista/clients/{id}:
+    put:
+      tags:
+        - Recepcionista - Clientes
+      summary: Actualizar cliente
+      description: Actualiza nombre, email y teléfono del cliente
+      operationId: updateClient
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepUpdateClientRequest'
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    
+    delete:
+      tags:
+        - Recepcionista - Clientes
+      summary: Eliminar cliente
+      description: Elimina un cliente y todas sus mascotas y citas
+      operationId: deleteClient
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Cliente eliminado
+  
+  /api/recepcionista/clients/{id}/toggle:
+    patch:
+      tags:
+        - Recepcionista - Clientes
+      summary: Activar/desactivar cliente
+      description: Cambia el estado enabled del cliente
+      operationId: toggleClient
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Estado actualizado
+  
+  /api/recepcionista/clients/{email}/pets:
+    get:
+      tags:
+        - Recepcionista - Clientes
+      summary: Listar mascotas de un cliente
+      description: Retorna todas las mascotas de un cliente por su email
+      operationId: getPetsByClient
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Lista de mascotas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PetResponse'
+  
+  /api/recepcionista/pets:
+    post:
+      tags:
+        - Recepcionista - Clientes
+      summary: Crear mascota
+      description: Agrega una nueva mascota a un cliente existente
+      operationId: createPetRecep
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepPetRequest'
+      responses:
+        '201':
+          description: Mascota creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetResponse'
+  
+  /api/recepcionista/pets/{id}:
+    put:
+      tags:
+        - Recepcionista - Clientes
+      summary: Actualizar mascota
+      description: Actualiza los datos de una mascota
+      operationId: updatePetRecep
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecepPetRequest'
+      responses:
+        '200':
+          description: Mascota actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetResponse'
+    
+    delete:
+      tags:
+        - Recepcionista - Clientes
+      summary: Eliminar mascota
+      description: Elimina una mascota del sistema
+      operationId: deletePetRecep
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Mascota eliminada
+
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # RECEPCIONISTA - PAGOS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/recepcionista/payments:
+    get:
+      tags:
+        - Recepcionista - Pagos
+      summary: Listar todos los pagos
+      description: Retorna todos los pagos (pendientes y pagados)
+      operationId: getAllPaymentsRecep
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+    
+    post:
+      tags:
+        - Recepcionista - Pagos
+      summary: Registrar pago
+      description: |
+        Registra un nuevo pago con estado PENDING.
+        El email de quien registra se toma del JWT.
+      operationId: createPayment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Pago registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+  
+  /api/recepcionista/payments/prices:
+    get:
+      tags:
+        - Recepcionista - Pagos
+      summary: Listar precios activos
+      description: Retorna servicios activos con su precio base
+      operationId: getActivePricesRecep
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de precios activos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePriceResponse'
+  
+  /api/recepcionista/payments/price:
+    get:
+      tags:
+        - Recepcionista - Pagos
+      summary: Consultar precio de un servicio
+      description: Retorna el precio base de un servicio específico
+      operationId: getPriceByService
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: serviceType
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "Consulta general"
+      responses:
+        '200':
+          description: Precio del servicio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePriceResponse'
+        '404':
+          description: Servicio no encontrado
+  
+  /api/recepcionista/payments/{id}/pay:
+    put:
+      tags:
+        - Recepcionista - Pagos
+      summary: Confirmar cobro en efectivo
+      description: Cambia el estado del pago de PENDING a PAID
+      operationId: markAsPaid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pago confirmado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+  
+  /api/recepcionista/payments/appointment/{appointmentId}:
+    get:
+      tags:
+        - Recepcionista - Pagos
+      summary: Consultar pago de una cita
+      description: Retorna el pago asociado a una cita específica
+      operationId: getPaymentByAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pago encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          description: Pago no encontrado
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CLIENTE - CITAS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/cliente/appointments:
+    get:
+      tags:
+        - Cliente - Citas
+      summary: Listar mis citas
+      description: Retorna todas las citas del cliente autenticado
+      operationId: getMyAppointments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de citas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppointmentResponse'
+    
+    post:
+      tags:
+        - Cliente - Citas
+      summary: Crear cita
+      description: |
+        Crea una nueva cita para una mascota del cliente autenticado.
+        El email del cliente se extrae del JWT.
+      operationId: createAppointment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentRequest'
+      responses:
+        '200':
+          description: Cita creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+  
+  /api/cliente/appointments/{id}/cancel:
+    put:
+      tags:
+        - Cliente - Citas
+      summary: Cancelar cita
+      description: |
+        Cancela una cita del cliente autenticado.
+        Solo se pueden cancelar citas con estado UPCOMING.
+      operationId: cancelAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Cita cancelada
+  
+  /api/cliente/appointments/slots:
+    get:
+      tags:
+        - Cliente - Citas
+      summary: Consultar horarios ocupados
+      description: Retorna las horas ocupadas de un veterinario en una fecha
+      operationId: getOccupiedSlots
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: vetId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2024-03-15"
+      responses:
+        '200':
+          description: Lista de horarios ocupados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "09:00:00"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CLIENTE - MASCOTAS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/cliente/pets:
+    get:
+      tags:
+        - Cliente - Mascotas
+      summary: Listar mis mascotas
+      description: Retorna todas las mascotas del cliente autenticado
+      operationId: getMyPets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de mascotas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PetResponse'
+    
+    post:
+      tags:
+        - Cliente - Mascotas
+      summary: Registrar mascota
+      description: |
+        Registra una nueva mascota asociada al cliente autenticado.
+        El ownerEmail se toma del JWT.
+      operationId: createPet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetRequest'
+      responses:
+        '200':
+          description: Mascota creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetResponse'
+  
+  /api/cliente/pets/{id}:
+    put:
+      tags:
+        - Cliente - Mascotas
+      summary: Actualizar mascota
+      description: |
+        Actualiza los datos de una mascota.
+        Solo el propietario puede modificarla.
+      operationId: updatePet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetRequest'
+      responses:
+        '200':
+          description: Mascota actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetResponse'
+    
+    delete:
+      tags:
+        - Cliente - Mascotas
+      summary: Eliminar mascota
+      description: |
+        Elimina una mascota del sistema.
+        Solo el propietario puede eliminarla.
+      operationId: deletePet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Mascota eliminada
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CLIENTE - PAGOS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/cliente/payments/my:
+    get:
+      tags:
+        - Cliente - Pagos
+      summary: Mi historial de pagos
+      description: |
+        Retorna el historial de pagos del cliente autenticado.
+        El email se extrae del JWT.
+      operationId: getMyPayments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Historial de pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentResponse'
+  
+  /api/cliente/payments/prices:
+    get:
+      tags:
+        - Cliente - Pagos
+      summary: Consultar precios de servicios
+      description: |
+        Retorna la lista de servicios activos con su precio base.
+        Usado para mostrar precio referencial al agendar cita.
+      operationId: getActivePricesCliente
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de precios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePriceResponse'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VETERINARIO - CITAS
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/vet/appointments:
+    get:
+      tags:
+        - Veterinario - Citas
+      summary: Mis citas asignadas
+      description: |
+        Retorna todas las citas asignadas al veterinario autenticado.
+        El email se extrae del JWT.
+      operationId: getMyAppointmentsVet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de citas asignadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecepAppointmentResponse'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PERFIL
+  # ═══════════════════════════════════════════════════════════════════════════
+  
+  /api/profile/me:
+    get:
+      tags:
+        - Perfil
+      summary: Consultar mi perfil
+      description: Retorna los datos del perfil del usuario autenticado
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos del perfil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  email:
+                    type: string
+                  phone:
+                    type: string
+                  role:
+                    type: string
+  
+  /api/profile/request-verification:
+    post:
+      tags:
+        - Perfil
+      summary: Solicitar código de verificación
+      description: |
+        Envía un código 2FA al correo actual del usuario.
+        Requerido antes de actualizar el perfil.
+      operationId: requestProfileVerification
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Código enviado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Código de verificación enviado al correo."
+  
+  /api/profile/verify-and-save:
+    post:
+      tags:
+        - Perfil
+      summary: Verificar código y guardar cambios
+      description: |
+        Valida el código 2FA y aplica los cambios al perfil.
+        Solo se actualizan los campos que vengan con valor.
+      operationId: verifyAndSaveProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdateRequest'
+      responses:
+        '200':
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Perfil actualizado correctamente."
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# COMPONENTES
+# ═══════════════════════════════════════════════════════════════════════════
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT obtenido tras autenticación exitosa.
+        Incluir en el header: `Authorization: Bearer <token>`
+  
+  schemas:
+    # ─────────────────────────────────────────────────────────────────────────
+    # AUTENTICACIÓN
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    UserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - phone
+        - recaptchaToken
+      properties:
+        name:
+          type: string
+          description: Nombre completo del usuario
+          example: "Juan Pérez"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico
+          example: "juan.perez@example.com"
+        password:
+          type: string
+          format: password
+          description: |
+            Contraseña (mínimo 8 caracteres, una mayúscula, un número y un carácter especial)
+          example: "Password123!"
+          pattern: '^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+        phone:
+          type: string
+          description: Teléfono colombiano (10 dígitos, inicia con 3)
+          example: "3001234567"
+          pattern: '^3[0-9]{9}$'
+        recaptchaToken:
+          type: string
+          description: Token generado por reCAPTCHA v2
+    
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+        - recaptchaToken
+      properties:
+        email:
+          type: string
+          format: email
+          example: "usuario@example.com"
+        password:
+          type: string
+          format: password
+          example: "Password123!"
+        recaptchaToken:
+          type: string
+          description: Token generado por reCAPTCHA v2
+    
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Autenticación exitosa"
+        email:
+          type: string
+          format: email
+          example: "usuario@example.com"
+        role:
+          type: string
+          enum:
+            - ROLE_ADMIN
+            - ROLE_VETERINARIO
+            - ROLE_RECEPCIONISTA
+            - ROLE_CLIENTE
+          example: "ROLE_CLIENTE"
+        token:
+          type: string
+          description: JWT para autenticación en endpoints protegidos
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        mustChangePassword:
+          type: boolean
+          description: Indica si el usuario debe cambiar su contraseña temporal
+          example: false
+    
+    ChangePasswordRequest:
+      type: object
+      required:
+        - email
+        - newPassword
+      properties:
+        email:
+          type: string
+          format: email
+        newPassword:
+          type: string
+          format: password
+          description: Nueva contraseña
+    
+    RequestPasswordReset:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Correo del usuario que solicita recuperación
+    
+    ResetPassword:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          description: Token recibido por correo
+        newPassword:
+          type: string
+          format: password
+          description: Nueva contraseña
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # USUARIOS
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Juan Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan.perez@example.com"
+        phone:
+          type: string
+          example: "3001234567"
+        role:
+          type: string
+          enum:
+            - ROLE_ADMIN
+            - ROLE_VETERINARIO
+            - ROLE_RECEPCIONISTA
+            - ROLE_CLIENTE
+          example: "ROLE_CLIENTE"
+        photoUrl:
+          type: string
+          format: uri
+          description: URL de foto en Cloudinary (solo veterinarios)
+          example: "https://res.cloudinary.com/dp24p2jhq/image/upload/v1234567890/pawsoft/staff/foto.jpg"
+        enabled:
+          type: boolean
+          description: Estado activo/inactivo del usuario
+          example: true
+    
+    StaffUserRequest:
+      type: object
+      required:
+        - nombre
+        - email
+        - role
+      properties:
+        nombre:
+          type: string
+          description: Nombre completo del usuario staff
+          example: "Dr. Carlos Martínez"
+        email:
+          type: string
+          format: email
+          example: "carlos.martinez@pawsoft.com"
+        role:
+          type: string
+          enum:
+            - ROLE_VETERINARIO
+            - ROLE_RECEPCIONISTA
+          description: Rol asignado al usuario staff
+        photoUrl:
+          type: string
+          format: uri
+          description: URL de foto subida a Cloudinary (opcional, solo veterinarios)
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # MASCOTAS
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    PetRequest:
+      type: object
+      required:
+        - name
+        - species
+        - sex
+      properties:
+        name:
+          type: string
+          example: "Max"
+        species:
+          type: string
+          enum:
+            - Perro
+            - Gato
+            - Conejo
+            - Ave
+            - Hamster
+          example: "Perro"
+        breed:
+          type: string
+          example: "Golden Retriever"
+        birthDate:
+          type: string
+          format: date
+          description: Fecha de nacimiento (YYYY-MM-DD)
+          example: "2020-05-15"
+        sex:
+          type: string
+          enum:
+            - Macho
+            - Hembra
+          example: "Macho"
+        ownerEmail:
+          type: string
+          format: email
+          description: Email del propietario (usado por recepcionista)
+        photoUrl:
+          type: string
+          format: uri
+          description: URL de foto subida a Cloudinary
+    
+    PetResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Max"
+        species:
+          type: string
+          example: "Perro"
+        breed:
+          type: string
+          example: "Golden Retriever"
+        birthDate:
+          type: string
+          format: date
+          example: "2020-05-15"
+        sex:
+          type: string
+          example: "Macho"
+        ownerEmail:
+          type: string
+          format: email
+          example: "cliente@example.com"
+        photoUrl:
+          type: string
+          format: uri
+          example: "https://res.cloudinary.com/dp24p2jhq/image/upload/v1234567890/pawsoft/pets/max.jpg"
+    
+    RecepPetRequest:
+      type: object
+      required:
+        - name
+        - species
+        - sex
+        - birthDate
+        - ownerEmail
+      properties:
+        name:
+          type: string
+          example: "Luna"
+        species:
+          type: string
+          example: "Gato"
+        breed:
+          type: string
+          example: "Siamés"
+        sex:
+          type: string
+          enum:
+            - Macho
+            - Hembra
+          example: "Hembra"
+        birthDate:
+          type: string
+          format: date
+          description: Fecha de nacimiento (YYYY-MM-DD)
+          example: "2021-03-10"
+        photoUrl:
+          type: string
+          format: uri
+        ownerEmail:
+          type: string
+          format: email
+          description: Email del propietario
+          example: "cliente@example.com"
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # CITAS
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    CreateAppointmentRequest:
+      type: object
+      required:
+        - petId
+        - date
+        - time
+        - vetId
+        - reason
+      properties:
+        petId:
+          type: integer
+          format: int64
+          description: ID de la mascota
+          example: 1
+        date:
+          type: string
+          format: date
+          description: Fecha de la cita (debe ser futura)
+          example: "2024-03-20"
+        time:
+          type: string
+          format: time
+          description: Hora de la cita (HH:mm)
+          example: "10:00"
+        vetId:
+          type: integer
+          format: int64
+          description: ID del veterinario
+          example: 5
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 255
+          description: Motivo de la cita
+          example: "Consulta general"
+    
+    AppointmentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        date:
+          type: string
+          format: date
+          example: "2024-03-20"
+        time:
+          type: string
+          format: time
+          example: "10:00"
+        reason:
+          type: string
+          example: "Consulta general"
+        status:
+          type: string
+          enum:
+            - UPCOMING
+            - CONFIRMED
+            - NO_SHOW
+            - CANCELLED
+            - COMPLETED
+          example: "UPCOMING"
+        petName:
+          type: string
+          example: "Max"
+        vetName:
+          type: string
+          example: "Dr. Carlos Martínez"
+        petPhotoUrl:
+          type: string
+          format: uri
+    
+    RecepCreateAppointmentRequest:
+      type: object
+      required:
+        - clientEmail
+        - petId
+        - vetId
+        - date
+        - time
+        - reason
+      properties:
+        clientEmail:
+          type: string
+          format: email
+          description: Email del cliente dueño de la mascota
+          example: "cliente@example.com"
+        petId:
+          type: integer
+          format: int64
+          example: 1
+        vetId:
+          type: integer
+          format: int64
+          example: 5
+        date:
+          type: string
+          format: date
+          example: "2024-03-20"
+        time:
+          type: string
+          format: time
+          description: Hora en formato HH:mm
+          example: "10:00"
+        reason:
+          type: string
+          example: "Vacunación"
+        notes:
+          type: string
+          description: Notas adicionales opcionales
+    
+    RecepUpdateAppointmentRequest:
+      type: object
+      required:
+        - date
+        - time
+        - vetId
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2024-03-21"
+        time:
+          type: string
+          format: time
+          example: "11:00"
+        vetId:
+          type: integer
+          format: int64
+          example: 5
+        reason:
+          type: string
+          example: "Control de rutina"
+        notes:
+          type: string
+    
+    RecepCancelRequest:
+      type: object
+      properties:
+        cancelReason:
+          type: string
+          description: Motivo de cancelación (opcional)
+          example: "Cliente solicitó reprogramación"
+    
+    RecepAppointmentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        date:
+          type: string
+          format: date
+          example: "2024-03-20"
+        time:
+          type: string
+          format: time
+          example: "10:00"
+        reason:
+          type: string
+          example: "Consulta general"
+        status:
+          type: string
+          enum:
+            - UPCOMING
+            - CONFIRMED
+            - NO_SHOW
+            - CANCELLED
+            - COMPLETED
+          example: "CONFIRMED"
+        cancelReason:
+          type: string
+          description: Motivo de cancelación (si aplica)
+        clientId:
+          type: integer
+          format: int64
+          example: 10
+        clientName:
+          type: string
+          example: "Juan Pérez"
+        clientEmail:
+          type: string
+          format: email
+          example: "juan.perez@example.com"
+        petId:
+          type: integer
+          format: int64
+          example: 1
+        petName:
+          type: string
+          example: "Max"
+        petSpecies:
+          type: string
+          example: "Perro"
+        petPhotoUrl:
+          type: string
+          format: uri
+        petBreed:
+          type: string
+          example: "Golden Retriever"
+        petBirthday:
+          type: string
+          format: date
+          example: "2020-05-15"
+        vetId:
+          type: integer
+          format: int64
+          example: 5
+        vetName:
+          type: string
+          example: "Dr. Carlos Martínez"
+        vetPhotoUrl:
+          type: string
+          format: uri
+        notes:
+          type: string
+          description: Notas adicionales
+
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # PAGOS
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    PaymentRequest:
+      type: object
+      required:
+        - appointmentId
+        - clientName
+        - clientEmail
+        - petName
+        - vetName
+        - appointmentDate
+        - appointmentTime
+        - concept
+        - baseAmount
+        - amount
+      properties:
+        appointmentId:
+          type: integer
+          format: int64
+          description: ID de la cita asociada
+          example: 1
+        clientName:
+          type: string
+          example: "Juan Pérez"
+        clientEmail:
+          type: string
+          format: email
+          example: "juan.perez@example.com"
+        petName:
+          type: string
+          example: "Max"
+        vetName:
+          type: string
+          example: "Dr. Carlos Martínez"
+        appointmentDate:
+          type: string
+          format: date
+          description: Fecha de la cita (YYYY-MM-DD)
+          example: "2024-03-20"
+        appointmentTime:
+          type: string
+          format: time
+          description: Hora de la cita (HH:mm)
+          example: "10:00"
+        concept:
+          type: string
+          description: Concepto del servicio
+          example: "Consulta general"
+        baseAmount:
+          type: number
+          format: decimal
+          description: Precio base del servicio
+          example: 50000
+          minimum: 0
+        amount:
+          type: number
+          format: decimal
+          description: Monto final (puede diferir del base si se ajustó)
+          example: 50000
+          minimum: 0
+        notes:
+          type: string
+          description: Notas adicionales opcionales
+    
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        appointmentId:
+          type: integer
+          format: int64
+          example: 1
+        clientName:
+          type: string
+          example: "Juan Pérez"
+        clientEmail:
+          type: string
+          format: email
+          example: "juan.perez@example.com"
+        petName:
+          type: string
+          example: "Max"
+        vetName:
+          type: string
+          example: "Dr. Carlos Martínez"
+        appointmentDate:
+          type: string
+          format: date
+          example: "2024-03-20"
+        appointmentTime:
+          type: string
+          format: time
+          example: "10:00"
+        concept:
+          type: string
+          example: "Consulta general"
+        baseAmount:
+          type: number
+          format: decimal
+          example: 50000
+        amount:
+          type: number
+          format: decimal
+          example: 50000
+        status:
+          type: string
+          enum:
+            - PENDING
+            - PAID
+          description: Estado del pago
+          example: "PAID"
+        paymentDate:
+          type: string
+          format: date-time
+          description: Fecha/hora del cobro efectivo (null si PENDING)
+          example: "2024-03-20T10:30:00"
+        receivedBy:
+          type: string
+          description: Email de quien registró el pago
+          example: "recepcionista@pawsoft.com"
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-03-20T10:00:00"
+    
+    ServicePriceRequest:
+      type: object
+      required:
+        - serviceType
+        - displayName
+        - price
+      properties:
+        serviceType:
+          type: string
+          description: Identificador único del servicio
+          example: "consulta"
+        displayName:
+          type: string
+          description: Nombre a mostrar
+          example: "Consulta general"
+        price:
+          type: number
+          format: decimal
+          description: Precio base del servicio
+          example: 50000
+          minimum: 0
+        description:
+          type: string
+          description: Descripción del servicio
+          example: "Consulta veterinaria general"
+        active:
+          type: boolean
+          description: Si el servicio está activo
+          default: true
+          example: true
+    
+    ServicePriceResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        serviceType:
+          type: string
+          example: "consulta"
+        displayName:
+          type: string
+          example: "Consulta general"
+        price:
+          type: number
+          format: decimal
+          example: 50000
+        description:
+          type: string
+          example: "Consulta veterinaria general"
+        active:
+          type: boolean
+          example: true
+    
+    PaymentStatsResponse:
+      type: object
+      properties:
+        totalPaid:
+          type: integer
+          format: int64
+          description: Total de pagos confirmados
+          example: 150
+        totalPending:
+          type: integer
+          format: int64
+          description: Total de pagos pendientes
+          example: 25
+        revenueToday:
+          type: number
+          format: decimal
+          description: Ingresos cobrados hoy
+          example: 500000
+        revenueThisWeek:
+          type: number
+          format: decimal
+          description: Ingresos cobrados en la semana actual
+          example: 2500000
+        revenueThisMonth:
+          type: number
+          format: decimal
+          description: Ingresos cobrados en el mes actual
+          example: 10000000
+        revenueAllTime:
+          type: number
+          format: decimal
+          description: Ingresos totales históricos
+          example: 50000000
+        revenueByConceptThisMonth:
+          type: object
+          additionalProperties:
+            type: number
+            format: decimal
+          description: Ingresos por concepto de servicio en el mes actual
+          example:
+            "Consulta general": 3000000
+            "Vacunación": 2500000
+            "Cirugía": 4500000
+        recentPayments:
+          type: array
+          description: Últimos 10 pagos confirmados
+          items:
+            $ref: '#/components/schemas/PaymentResponse'
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # CLIENTES (RECEPCIONISTA)
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    RecepCreateClientRequest:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: Nombre completo del cliente
+          example: "María González"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico
+          example: "maria.gonzalez@example.com"
+        phone:
+          type: string
+          description: Teléfono colombiano (opcional)
+          example: "3009876543"
+          pattern: '^3[0-9]{9}$'
+    
+    RecepUpdateClientRequest:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          description: Nombre completo del cliente
+          example: "María González Pérez"
+        email:
+          type: string
+          format: email
+          description: Nuevo correo (opcional)
+          example: "maria.gonzalez.new@example.com"
+        telefono:
+          type: string
+          description: Teléfono de contacto (opcional)
+          example: "3009876543"
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # PERFIL
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    ProfileUpdateRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: Código 2FA de verificación
+          example: "123456"
+        email:
+          type: string
+          format: email
+          description: Nuevo correo (opcional)
+        phone:
+          type: string
+          description: Nuevo teléfono (opcional)
+        newPassword:
+          type: string
+          format: password
+          description: Nueva contraseña (opcional)
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # ERRORES
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: Código de estado HTTP
+          example: 400
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: "El correo ya está registrado"
+        timestamp:
+          type: string
+          format: date-time
+          description: Fecha y hora del error
+          example: "2024-03-20T10:00:00"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# EJEMPLOS DE RESPUESTAS DE ERROR
+# ═══════════════════════════════════════════════════════════════════════════
+
+  examples:
+    Error400:
+      value:
+        status: 400
+        message: "Datos inválidos en la solicitud"
+        timestamp: "2024-03-20T10:00:00"
+    
+    Error401:
+      value:
+        status: 401
+        message: "Credenciales inválidas"
+        timestamp: "2024-03-20T10:00:00"
+    
+    Error403:
+      value:
+        status: 403
+        message: "No tienes permisos para acceder a este recurso"
+        timestamp: "2024-03-20T10:00:00"
+    
+    Error404:
+      value:
+        status: 404
+        message: "Recurso no encontrado"
+        timestamp: "2024-03-20T10:00:00"
+    
+    Error409:
+      value:
+        status: 409
+        message: "El correo ya está registrado"
+        timestamp: "2024-03-20T10:00:00"
+    
+    Error500:
+      value:
+        status: 500
+        message: "Error interno del servidor"
+        timestamp: "2024-03-20T10:00:00"
