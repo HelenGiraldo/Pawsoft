@@ -77,6 +77,10 @@ public class AppointmentService {
             throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
         }
 
+        if (request.date().isEqual(LocalDate.now()) && request.time().isBefore(LocalTime.now())) {
+            throw new RuntimeException("No se pueden agendar citas en horas que ya pasaron");
+        }
+
         LocalTime openingTime = LocalTime.of(7, 0);
         LocalTime closingTime = LocalTime.of(21, 0);
 
