@@ -4,6 +4,7 @@ import co.edu.uniquindio.backendpawsoft.enums.Role;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,14 @@ public class DataInitializer implements CommandLineRunner {
      */
     private final PasswordEncoder passwordEncoder;
 
+    /** Correo del admin — se lee desde application.properties (no hardcodeado en código). */
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    /** Contraseña inicial del admin — se lee desde application.properties. */
+    @Value("${app.admin.password}")
+    private String adminPassword;
+
     /**
      * Método ejecutado al iniciar la aplicación.
      *
@@ -57,16 +66,13 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        String adminEmail = "***REDACTED***";
-        
         var existingAdmin = userRepository.findByEmail(adminEmail);
-        
+
         if (existingAdmin.isEmpty()) {
-            // El admin no existe, crearlo
             User admin = User.builder()
                     .name("Administrador")
                     .email(adminEmail)
-                    .password(passwordEncoder.encode("***REDACTED***"))
+                    .password(passwordEncoder.encode(adminPassword))
                     .role(Role.ROLE_ADMIN)
                     .primerAcceso(false)
                     .enabled(true)
@@ -75,11 +81,9 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             System.out.println("✅ Usuario ADMIN creado: " + adminEmail);
         } else {
-            // El admin existe, verificar que esté habilitado
             User admin = existingAdmin.get();
-            
+
             if (!admin.isEnabled()) {
-                // El admin está deshabilitado, habilitarlo
                 admin.setEnabled(true);
                 userRepository.save(admin);
                 System.out.println("⚠️ Usuario ADMIN estaba deshabilitado - HABILITADO automáticamente: " + adminEmail);
