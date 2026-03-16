@@ -5,12 +5,15 @@ import co.edu.uniquindio.backendpawsoft.dto.ProfileUpdateRequest;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
 import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
 import co.edu.uniquindio.backendpawsoft.model.Codigo2FA;
+import co.edu.uniquindio.backendpawsoft.model.Pet;
 import co.edu.uniquindio.backendpawsoft.model.User;
+import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -54,6 +57,7 @@ public class ProfileService {
     private final TwoFactorService      twoFactorService;
     private final EmailService          emailService;
     private final AuditLogService       auditLogService;
+    private final PetRepository         petRepository;
 
     // ── Solicitud de verificación ─────────────────────────────────────────────
 
@@ -121,6 +125,13 @@ public class ProfileService {
                     throw new UnauthorizedException("El correo ya está en uso por otro usuario.");
                 }
             });
+
+            // Transfiere las mascotas al nuevo correo
+            String emailAnterior = user.getEmail();
+            List<Pet> mascotas = petRepository.findByOwnerEmail(emailAnterior);
+            mascotas.forEach(pet -> pet.setOwnerEmail(request.getEmail()));
+            petRepository.saveAll(mascotas);
+
             user.setEmail(request.getEmail());
             auditLogService.log("PROFILE_UPDATE_EMAIL", "Usuario actualizó su correo", "USER", user.getId().intValue());
         }

@@ -1,5 +1,16 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
+/**
+ * Controlador REST para las operaciones del veterinario autenticado.
+ *
+ * Expone el endpoint para que el veterinario consulte sus citas asignadas.
+ * La identidad del veterinario se extrae del JWT mediante {@link Authentication}.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
+ * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Profesor: Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.dto.RecepAppointmentResponse;
 import co.edu.uniquindio.backendpawsoft.service.AppointmentService;
 import lombok.RequiredArgsConstructor;

@@ -47,15 +47,40 @@ public class RecaptchaService {
     @SuppressWarnings("unchecked")
     public boolean isValid(String token) {
         if (token == null || token.isBlank()) {
+            System.out.println("[reCAPTCHA] Token vacío o nulo");
             return false;
         }
 
         String url = verifyUrl + "?secret=" + secretKey + "&response=" + token;
+        System.out.println("[reCAPTCHA] Validando token con Google...");
+        System.out.println("[reCAPTCHA] URL: " + verifyUrl);
+        System.out.println("[reCAPTCHA] Secret Key (primeros 10 chars): " + secretKey.substring(0, Math.min(10, secretKey.length())) + "...");
+        System.out.println("[reCAPTCHA] Token (primeros 50 chars): " + token.substring(0, Math.min(50, token.length())) + "...");
 
         try {
             Map<String, Object> response = restTemplate.postForObject(url, null, Map.class);
-            return response != null && Boolean.TRUE.equals(response.get("success"));
+            System.out.println("[reCAPTCHA] Respuesta completa de Google: " + response);
+            
+            if (response != null) {
+                Boolean success = (Boolean) response.get("success");
+                System.out.println("[reCAPTCHA] Success: " + success);
+                
+                if (Boolean.FALSE.equals(success)) {
+                    Object errorCodes = response.get("error-codes");
+                    System.out.println("[reCAPTCHA] ❌ VALIDACIÓN FALLIDA");
+                    System.out.println("[reCAPTCHA] Error codes: " + errorCodes);
+                    return false;
+                }
+                
+                System.out.println("[reCAPTCHA] ✅ Token válido");
+                return Boolean.TRUE.equals(success);
+            }
+            
+            System.out.println("[reCAPTCHA] ❌ Respuesta nula de Google");
+            return false;
         } catch (Exception e) {
+            System.out.println("[reCAPTCHA] ❌ Excepción al validar: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }

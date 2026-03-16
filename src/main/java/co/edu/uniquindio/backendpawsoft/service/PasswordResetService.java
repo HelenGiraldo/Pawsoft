@@ -1,5 +1,22 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para el flujo de recuperación de contraseña.
+ *
+ * Implementa dos pasos:
+ * 1. {@link #requestPasswordReset(String)} — genera un token seguro y lo envía
+ *    por correo al usuario. La respuesta es silenciosa si el email no existe,
+ *    para evitar enumeración de usuarios.
+ * 2. {@link #resetPassword(String, String)} — valida el token y actualiza la
+ *    contraseña si cumple los requisitos de seguridad.
+ *
+ * Los tokens expiran a los 30 minutos y solo pueden usarse una vez.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
+ * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Profesor: Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
 import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;

@@ -1,5 +1,17 @@
 package co.edu.uniquindio.backendpawsoft.model;
 
+/**
+ * Entidad que representa una mascota registrada en el sistema.
+ *
+ * Cada mascota está vinculada a un propietario mediante su correo electrónico.
+ * Al cambiar el correo del propietario, el campo {@code ownerEmail} se actualiza
+ * en cascada desde {@link co.edu.uniquindio.backendpawsoft.service.ProfileService}.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
+ * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Profesor: Raúl Yulbraynner Rivera Gálvez
+ */
 import jakarta.persistence.*;
 import lombok.*;
 

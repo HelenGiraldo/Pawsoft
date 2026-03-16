@@ -45,20 +45,27 @@ public class DataInitializer implements CommandLineRunner {
     /**
      * Método ejecutado al iniciar la aplicación.
      *
-     * Verifica si ya existe el usuario administrador por correo. Si no existe, lo crea con:
-     * - rol ADMIN
-     * - contraseña inicial codificada con BCrypt
-     * - primerAcceso = false (para evitar obligar cambio inmediato de contraseña)
+     * Verifica si ya existe el usuario administrador por correo:
+     * - Si NO existe: Lo crea con enabled = true
+     * - Si existe pero está deshabilitado: Lo habilita automáticamente
+     * - Si existe y está habilitado: No hace nada
+     *
+     * Esto garantiza que siempre haya un admin funcional al arrancar el servidor.
      *
      * @param args argumentos de línea de comandos (no se usan en esta implementación)
      */
     @Override
     public void run(String... args) {
 
-        if (userRepository.findByEmail("***REDACTED***").isEmpty()) {
+        String adminEmail = "***REDACTED***";
+        
+        var existingAdmin = userRepository.findByEmail(adminEmail);
+        
+        if (existingAdmin.isEmpty()) {
+            // El admin no existe, crearlo
             User admin = User.builder()
                     .name("Administrador")
-                    .email("***REDACTED***")
+                    .email(adminEmail)
                     .password(passwordEncoder.encode("***REDACTED***"))
                     .role(Role.ROLE_ADMIN)
                     .primerAcceso(false)
@@ -66,9 +73,19 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             userRepository.save(admin);
-            System.out.println("Usuario ADMIN creado: admin@pawsoft.com / ***REDACTED***");
+            System.out.println("✅ Usuario ADMIN creado: " + adminEmail);
         } else {
-            System.out.println("Usuario ADMIN ya existe");
+            // El admin existe, verificar que esté habilitado
+            User admin = existingAdmin.get();
+            
+            if (!admin.isEnabled()) {
+                // El admin está deshabilitado, habilitarlo
+                admin.setEnabled(true);
+                userRepository.save(admin);
+                System.out.println("⚠️ Usuario ADMIN estaba deshabilitado - HABILITADO automáticamente: " + adminEmail);
+            } else {
+                System.out.println("ℹ️ Usuario ADMIN ya existe y está habilitado: " + adminEmail);
+            }
         }
     }
 }
