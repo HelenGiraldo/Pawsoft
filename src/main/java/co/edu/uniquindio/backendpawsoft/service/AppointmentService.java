@@ -231,6 +231,14 @@ public class AppointmentService {
         Pet pet = petRepository.findById(request.petId())
                 .orElseThrow(() -> new NotFoundException("Mascota no encontrada"));
 
+        if (request.date().isBefore(LocalDate.now())) {
+            throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
+        }
+
+        if (request.date().isEqual(LocalDate.now()) && request.time().isBefore(LocalTime.now())) {
+            throw new RuntimeException("No se pueden agendar citas en horas que ya pasaron");
+        }
+
         if (appointmentRepository.existsByVetIdAndDateAndTime(
                 request.vetId(), request.date(), request.time())) {
             throw new RuntimeException("El horario ya está reservado para ese veterinario");
