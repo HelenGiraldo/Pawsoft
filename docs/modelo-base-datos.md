@@ -1,6 +1,6 @@
 # Modelo de Base de Datos — PawSoft
 
-Base de datos relacional gestionada por **Spring Data JPA / Hibernate** sobre **MongoDB Atlas** (o el motor configurado en `application.properties`).  
+Base de datos relacional gestionada por **Spring Data JPA / Hibernate**.  
 El esquema se genera automáticamente a partir de las entidades JPA con `spring.jpa.hibernate.ddl-auto`.
 
 ---
