@@ -1,144 +1,124 @@
 # Modelo de Base de Datos — PawSoft
 
-Base de datos relacional gestionada por **Spring Data JPA / Hibernate**.  
-El esquema se genera automáticamente a partir de las entidades JPA con `spring.jpa.hibernate.ddl-auto`.
+Base de datos relacional MySQL gestionada con Spring Data JPA / Hibernate.
 
 ---
 
-## Diagrama entidad-relación (Mermaid)
+## Relaciones entre tablas
 
-```mermaid
-erDiagram
+```
+┌─────────────────────┐         ┌─────────────────────────┐
+│        users        │         │          pets           │
+│─────────────────────│         │─────────────────────────│
+│ id (PK)             │         │ id (PK)                 │
+│ name                │         │ name                    │
+│ email (UK)          │         │ species                 │
+│ password            │         │ breed                   │
+│ primer_acceso       │         │ birth_date              │
+│ role                │         │ sex                     │
+│ failed_attempts     │         │ owner_email             │
+│ lock_time           │         │ photo_url               │
+│ two_factor_code     │         └──────────┬──────────────┘
+│ two_factor_expiry   │                    │
+│ enabled             │                    │ pet_id
+│ photo_url           │                    │
+│ phone               │         ┌──────────▼──────────────┐
+└──────┬──────────────┘         │      appointments       │
+       │                        │─────────────────────────│
+       │ client_id              │ id (PK)                 │
+       ├───────────────────────►│ date                    │
+       │ vet_id                 │ time                    │
+       ├───────────────────────►│ reason                  │
+       │                        │ status                  │
+       │                        │ client_id (FK → users)  │
+       │                        │ vet_id    (FK → users)  │
+       │                        │ pet_id    (FK → pets)   │
+       │                        │ notes                   │
+       │                        │ cancel_reason           │
+       │                        └──────────┬──────────────┘
+       │                                   │ appointment_id
+       │                        ┌──────────▼──────────────┐
+       │                        │        payments         │
+       │                        │─────────────────────────│
+       │                        │ id (PK)                 │
+       │                        │ appointment_id (nullable)│
+       │                        │ client_name             │
+       │                        │ client_email            │
+       │                        │ pet_name                │
+       │                        │ vet_name                │
+       │                        │ appointment_date        │
+       │                        │ appointment_time        │
+       │                        │ concept                 │
+       │                        │ base_amount             │
+       │                        │ amount                  │
+       │                        │ status                  │
+       │                        │ payment_date            │
+       │                        │ received_by             │
+       │                        │ notes                   │
+       │                        │ created_at              │
+       │                        └─────────────────────────┘
 
-    users {
-        BIGINT      id              PK
-        VARCHAR(100) name
-        VARCHAR(150) email          UK
-        VARCHAR     password
-        BOOLEAN     primer_acceso
-        VARCHAR     role
-        INT         failed_attempts
-        DATETIME    lock_time
-        VARCHAR     two_factor_code
-        DATETIME    two_factor_expiration
-        BOOLEAN     enabled
-        VARCHAR(500) photo_url
-        VARCHAR(20)  phone
-    }
+       │
+       ├──────────────────────────────────────────────────┐
+       │                                                  │
+       │  user_id                              user_id    │
+┌──────▼──────────────┐         ┌─────────────▼──────────┤
+│     codigos_2fa     │         │  email_verification_   │
+│─────────────────────│         │        token           │
+│ id (PK)             │         │────────────────────────│
+│ user_id (FK)        │         │ id (PK)                │
+│ codigo              │         │ token (UK)             │
+│ creado_en           │         │ user_id (FK)           │
+│ expira_en           │         │ expiration_date        │
+│ usado               │         └────────────────────────┘
+│ intentos_fallidos   │
+│ cantidad_reenvios   │         ┌────────────────────────┐
+│ bloqueos_acumulados │         │  password_reset_tokens │
+│ bloqueado_hasta     │         │────────────────────────│
+│ resultado           │         │ id (PK)                │
+│ fecha_uso           │         │ token (UK)             │
+│ ip_origen           │         │ user_id (FK → users)   │
+└─────────────────────┘         │ expiration_date        │
+                                │ used                   │
+                                └────────────────────────┘
 
-    pets {
-        BIGINT      id              PK
-        VARCHAR     name
-        VARCHAR     species
-        VARCHAR     breed
-        VARCHAR     birth_date
-        VARCHAR     sex
-        VARCHAR     owner_email
-        VARCHAR(500) photo_url
-    }
-
-    appointments {
-        BIGINT      id              PK
-        DATE        date
-        TIME        time
-        VARCHAR(255) reason
-        VARCHAR     status
-        BIGINT      client_id       FK
-        BIGINT      vet_id          FK
-        BIGINT      pet_id          FK
-        VARCHAR(500) notes
-        VARCHAR(300) cancel_reason
-    }
-
-    payments {
-        BIGINT      id              PK
-        BIGINT      appointment_id
-        VARCHAR(120) client_name
-        VARCHAR(120) client_email
-        VARCHAR(80)  pet_name
-        VARCHAR(120) vet_name
-        DATE        appointment_date
-        TIME        appointment_time
-        VARCHAR(100) concept
-        DECIMAL(12,2) base_amount
-        DECIMAL(12,2) amount
-        VARCHAR(20)  status
-        DATETIME    payment_date
-        VARCHAR(120) received_by
-        VARCHAR(255) notes
-        DATETIME    created_at
-    }
-
-    service_prices {
-        BIGINT      id              PK
-        VARCHAR(100) service_type   UK
-        VARCHAR(100) display_name
-        DECIMAL(12,2) price
-        VARCHAR(255) description
-        BOOLEAN     active
-    }
-
-    codigos_2fa {
-        BIGINT      id              PK
-        BIGINT      user_id         FK
-        VARCHAR     codigo
-        DATETIME    creado_en
-        DATETIME    expira_en
-        BOOLEAN     usado
-        INT         intentos_fallidos
-        INT         cantidad_reenvios
-        INT         bloqueos_acumulados
-        DATETIME    bloqueado_hasta
-        VARCHAR     resultado
-        DATETIME    fecha_uso
-        VARCHAR(45) ip_origen
-    }
-
-    email_verification_token {
-        BIGINT      id              PK
-        VARCHAR     token           UK
-        BIGINT      user_id         FK
-        DATETIME    expiration_date
-    }
-
-    password_reset_tokens {
-        BIGINT      id              PK
-        VARCHAR(255) token          UK
-        BIGINT      user_id         FK
-        DATETIME    expiration_date
-        BOOLEAN     used
-    }
-
-    users         ||--o{ appointments          : "client_id (cliente)"
-    users         ||--o{ appointments          : "vet_id (veterinario)"
-    pets          ||--o{ appointments          : "pet_id"
-    users         ||--o{ codigos_2fa           : "user_id"
-    users         ||--o| email_verification_token : "user_id"
-    users         ||--o{ password_reset_tokens : "user_id"
+┌─────────────────────────────────┐
+│         service_prices          │
+│─────────────────────────────────│
+│ id (PK)                         │
+│ service_type (UK)               │
+│ display_name                    │
+│ price                           │
+│ description                     │
+│ active                          │
+└─────────────────────────────────┘
 ```
 
+> `service_prices` no tiene FK directa con otras tablas. El campo `service_type`
+> coincide por valor con el campo `reason` de `appointments`.
+
 ---
 
-## Descripción de tablas
+## Tablas
 
 ### `users`
-Usuarios del sistema. Un usuario puede tener rol `ROLE_CLIENTE`, `ROLE_VETERINARIO`, `ROLE_RECEPCIONISTA` o `ROLE_ADMIN`.
+Usuarios del sistema. Rol puede ser `ROLE_CLIENTE`, `ROLE_VETERINARIO`, `ROLE_RECEPCIONISTA` o `ROLE_ADMIN`.
 
 | Columna | Tipo | Descripción |
 |---|---|---|
 | `id` | BIGINT PK | Identificador autoincremental |
 | `name` | VARCHAR(100) | Nombre completo |
 | `email` | VARCHAR(150) UK | Correo electrónico (único, usado como username) |
-| `password` | VARCHAR | Contraseña encriptada (BCrypt) |
+| `password` | VARCHAR | Contraseña encriptada con BCrypt |
 | `primer_acceso` | BOOLEAN | Si `true`, debe cambiar contraseña al primer login |
-| `role` | VARCHAR | Rol del usuario (enum `Role`) |
+| `role` | VARCHAR | Rol del usuario |
 | `failed_attempts` | INT | Intentos fallidos de login (anti fuerza bruta) |
 | `lock_time` | DATETIME | Fecha hasta la que la cuenta está bloqueada |
-| `two_factor_code` | VARCHAR | Código 2FA temporal (campo de soporte) |
+| `two_factor_code` | VARCHAR | Código 2FA temporal |
 | `two_factor_expiration` | DATETIME | Expiración del código 2FA temporal |
 | `enabled` | BOOLEAN | `false` hasta verificar el correo |
 | `photo_url` | VARCHAR(500) | URL pública de foto de perfil (Cloudinary) |
-| `phone` | VARCHAR(20) | Teléfono colombiano de 10 dígitos |
+| `phone` | VARCHAR(20) | Teléfono de 10 dígitos |
 
 ---
 
@@ -151,15 +131,15 @@ Mascotas registradas por los clientes.
 | `name` | VARCHAR | Nombre de la mascota |
 | `species` | VARCHAR | Especie (ej: Perro, Gato) |
 | `breed` | VARCHAR | Raza (opcional) |
-| `birth_date` | VARCHAR | Fecha de nacimiento (formato libre) |
+| `birth_date` | VARCHAR | Fecha de nacimiento |
 | `sex` | VARCHAR | Sexo (Macho / Hembra) |
-| `owner_email` | VARCHAR | Correo del propietario (se actualiza en cascada si cambia el email del usuario) |
+| `owner_email` | VARCHAR | Correo del propietario |
 | `photo_url` | VARCHAR(500) | URL pública de foto de la mascota |
 
 ---
 
 ### `appointments`
-Citas veterinarias agendadas. Restricción única sobre `(date, time, vet_id)` para evitar solapamiento.
+Citas veterinarias. Restricción única sobre `(date, time, vet_id)` para evitar solapamiento.
 
 | Columna | Tipo | Descripción |
 |---|---|---|
@@ -177,7 +157,7 @@ Citas veterinarias agendadas. Restricción única sobre `(date, time, vet_id)` p
 ---
 
 ### `payments`
-Registro contable de pagos. Almacena una instantánea de los datos de la cita al momento del cobro para garantizar inmutabilidad del historial financiero.
+Registro contable de pagos. Almacena una instantánea de los datos al momento del cobro para garantizar inmutabilidad del historial financiero.
 
 | Columna | Tipo | Descripción |
 |---|---|---|
@@ -189,9 +169,9 @@ Registro contable de pagos. Almacena una instantánea de los datos de la cita al
 | `vet_name` | VARCHAR(120) | Nombre del veterinario al momento del cobro |
 | `appointment_date` | DATE | Fecha de la cita cobrada |
 | `appointment_time` | TIME | Hora de la cita cobrada |
-| `concept` | VARCHAR(100) | Concepto cobrado (ej: "Consulta general") |
+| `concept` | VARCHAR(100) | Concepto cobrado |
 | `base_amount` | DECIMAL(12,2) | Precio base de `service_prices` al momento del cobro |
-| `amount` | DECIMAL(12,2) | Monto final cobrado (puede incluir ajuste) |
+| `amount` | DECIMAL(12,2) | Monto final cobrado |
 | `status` | VARCHAR(20) | Estado: `PENDING`, `PAID`, `CANCELLED` |
 | `payment_date` | DATETIME | Fecha/hora de confirmación del cobro |
 | `received_by` | VARCHAR(120) | Email de la recepcionista que registró el pago |
@@ -201,7 +181,7 @@ Registro contable de pagos. Almacena una instantánea de los datos de la cita al
 ---
 
 ### `service_prices`
-Tabla de precios base por tipo de servicio, gestionada por el administrador.
+Precios base por tipo de servicio, gestionados por el administrador.
 
 | Columna | Tipo | Descripción |
 |---|---|---|
@@ -215,7 +195,7 @@ Tabla de precios base por tipo de servicio, gestionada por el administrador.
 ---
 
 ### `codigos_2fa`
-Códigos de segundo factor de autenticación. Un usuario puede tener múltiples registros a lo largo del tiempo (uno por sesión de login).
+Códigos de segundo factor de autenticación por sesión de login.
 
 | Columna | Tipo | Descripción |
 |---|---|---|
@@ -255,14 +235,14 @@ Tokens para el flujo "olvidé mi contraseña".
 | `id` | BIGINT PK | Identificador autoincremental |
 | `token` | VARCHAR(255) UK | Token UUID único enviado por correo |
 | `user_id` | BIGINT FK → users | Usuario que solicitó el restablecimiento |
-| `expiration_date` | DATETIME | Expiración del token |
+| `expiration_date` | DATETIME | Expiración del token (30 min) |
 | `used` | BOOLEAN | `true` si ya fue consumido |
 
 ---
 
 ## Notas de diseño
 
-- **`payments.appointment_id` es nullable** a propósito: si una cita se elimina, el registro de pago se conserva como historial contable permanente.
-- **`pets.owner_email`** se actualiza en cascada desde `ProfileService` cuando el cliente cambia su correo.
-- **`codigos_2fa`** tiene `CascadeType.ALL + orphanRemoval = true` desde `User`, por lo que al eliminar un usuario todos sus códigos 2FA se eliminan automáticamente.
+- `payments.appointment_id` es nullable a propósito: si una cita se elimina, el registro de pago se conserva como historial contable permanente.
+- `pets.owner_email` se actualiza en cascada desde `ProfileService` cuando el cliente cambia su correo.
+- `codigos_2fa` tiene `CascadeType.ALL + orphanRemoval = true` desde `User`, por lo que al eliminar un usuario todos sus códigos 2FA se eliminan automáticamente.
 - Los índices en `payments` optimizan las consultas más frecuentes del panel de administración (por cliente, estado y fecha).
