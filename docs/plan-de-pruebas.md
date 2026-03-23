@@ -5,7 +5,7 @@
 **Programa:** Ingeniería de Sistemas y Computación  
 **Materia:** Software III  
 **Autoras:** Valentina Porras Salazar · Helen Xiomara Giraldo Libreros  
-**Profesor:** Raúl Yulbraynner Rivera Gálvez  
+**Profesor:** Raúl Yulbraynner Rivera Gálvez
 
 ---
 
@@ -193,4 +193,4 @@ El sistema fue validado en el entorno de producción con las siguientes verifica
 - Auditoría registrando acciones críticas en tabla `audit_log`
 - Todos los roles (CLIENTE, VETERINARIO, RECEPCIONISTA, ADMIN) verificados con usuarios de prueba
 
-**Conclusión:** El sistema cumple con los requisitos funcionales y no funcionales definidos para el proyecto académico. Los 8 defectos detectados durante el desarrollo fueron corregidos antes de la entrega final.
+**Conclusión:** El sistema cumple con los requisitos funcionales y no funcionales definidos para el proyecto académico. Los 8 defectos detectados durante el desarrollo fueron corregidos.
