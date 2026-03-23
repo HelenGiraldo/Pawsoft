@@ -5,7 +5,7 @@
 **Programa:** Ingeniería de Sistemas y Computación  
 **Materia:** Software III  
 **Autoras:** Valentina Porras Salazar · Helen Xiomara Giraldo Libreros  
-**Profesor:** Raúl Yulbraynner Rivera Gálvez
+**Profesor:** Raúl Yulbraynner Rivera Gálvez  
 
 ---
 
