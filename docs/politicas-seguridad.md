@@ -5,7 +5,7 @@
 **Programa:** Ingeniería de Sistemas y Computación  
 **Materia:** Software III  
 **Autoras:** Valentina Porras Salazar · Helen Xiomara Giraldo Libreros  
-**Profesor:** Raúl Yulbraynner Rivera Gálvez  
+**Profesor:** Raúl Yulbraynner Rivera Gálvez
 
 ---
 
@@ -41,7 +41,7 @@ El control se aplica en dos niveles:
 
 ## 3. Protección de datos sensibles
 
-- Las contraseñas se almacenan cifradas con BCrypt (factor de costo 10). Nunca se almacenan ni transmiten en texto plano.
+- Las contraseñas se almacenan cifradas con BCrypt. Nunca se almacenan ni transmiten en texto plano.
 - Los tokens de verificación de correo (1 hora), reset de contraseña (30 min) y códigos 2FA (3 min) tienen expiración definida y se marcan como usados tras su consumo.
 - El archivo `application.properties` con credenciales de base de datos, claves de API y secretos está excluido del repositorio mediante `.gitignore`.
 - Las variables sensibles (claves JWT, credenciales SMTP, claves reCAPTCHA, credenciales Cloudinary) se configuran como variables de entorno en el servidor de producción.
@@ -108,17 +108,28 @@ Esta política se aplica en: registro, recuperación de contraseña, cambio de c
 
 ## 8. Copias de seguridad y recuperación
 
-**Estado actual:** backup manual bajo demanda mediante `mysqldump` en el servidor EC2.
+**Estado actual:** backup automático diario configurado en el servidor EC2 mediante `mysqldump` + `cron`.
 
-**Procedimiento de backup manual:**
+**Script de backup** (`/home/ec2-user/backup-db.sh`):
 ```bash
-mysqldump -u <usuario> -p pawsoft_db > backup_$(date +%Y%m%d).sql
+#!/bin/bash
+FECHA=$(date +%Y%m%d_%H%M%S)
+ARCHIVO="/home/ec2-user/backups/pawsoft_$FECHA.sql"
+mysqldump -h <host-rds> -u admin -p<password> pawsoft > "$ARCHIVO"
+find /home/ec2-user/backups -name "*.sql" -mtime +7 -delete
+echo "Backup completado: $ARCHIVO"
 ```
 
-**Política definida para producción:**
-- Frecuencia recomendada: diaria (automatizable con cron en EC2).
-- Retención: mínimo 7 días de backups.
-- Almacenamiento: directorio local en EC2 con copia en S3 para mayor durabilidad.
+**Cron configurado** (todos los días a las 2:00 AM UTC):
+```
+0 2 * * * /home/ec2-user/backup-db.sh >> /home/ec2-user/backups/backup.log 2>&1
+```
+
+**Política:**
+- Frecuencia: diaria automática.
+- Retención: 7 días (los backups más antiguos se eliminan automáticamente).
+- Almacenamiento: directorio `/home/ec2-user/backups/` en EC2.
+- Log de ejecución: `/home/ec2-user/backups/backup.log`.
 
 ---
 
