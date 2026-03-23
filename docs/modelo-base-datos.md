@@ -6,96 +6,13 @@ Base de datos relacional MySQL gestionada con Spring Data JPA / Hibernate.
 
 ## Relaciones entre tablas
 
-```
-┌─────────────────────┐         ┌─────────────────────────┐
-│        users        │         │          pets           │
-│─────────────────────│         │─────────────────────────│
-│ id (PK)             │         │ id (PK)                 │
-│ name                │         │ name                    │
-│ email (UK)          │         │ species                 │
-│ password            │         │ breed                   │
-│ primer_acceso       │         │ birth_date              │
-│ role                │         │ sex                     │
-│ failed_attempts     │         │ owner_email             │
-│ lock_time           │         │ photo_url               │
-│ two_factor_code     │         └──────────┬──────────────┘
-│ two_factor_expiry   │                    │
-│ enabled             │                    │ pet_id
-│ photo_url           │                    │
-│ phone               │         ┌──────────▼──────────────┐
-└──────┬──────────────┘         │      appointments       │
-       │                        │─────────────────────────│
-       │ client_id              │ id (PK)                 │
-       ├───────────────────────►│ date                    │
-       │ vet_id                 │ time                    │
-       ├───────────────────────►│ reason                  │
-       │                        │ status                  │
-       │                        │ client_id (FK → users)  │
-       │                        │ vet_id    (FK → users)  │
-       │                        │ pet_id    (FK → pets)   │
-       │                        │ notes                   │
-       │                        │ cancel_reason           │
-       │                        └──────────┬──────────────┘
-       │                                   │ appointment_id
-       │                        ┌──────────▼──────────────┐
-       │                        │        payments         │
-       │                        │─────────────────────────│
-       │                        │ id (PK)                 │
-       │                        │ appointment_id (nullable)│
-       │                        │ client_name             │
-       │                        │ client_email            │
-       │                        │ pet_name                │
-       │                        │ vet_name                │
-       │                        │ appointment_date        │
-       │                        │ appointment_time        │
-       │                        │ concept                 │
-       │                        │ base_amount             │
-       │                        │ amount                  │
-       │                        │ status                  │
-       │                        │ payment_date            │
-       │                        │ received_by             │
-       │                        │ notes                   │
-       │                        │ created_at              │
-       │                        └─────────────────────────┘
-
-       │
-       ├──────────────────────────────────────────────────┐
-       │                                                  │
-       │  user_id                              user_id    │
-┌──────▼──────────────┐         ┌─────────────▼──────────┤
-│     codigos_2fa     │         │  email_verification_   │
-│─────────────────────│         │        token           │
-│ id (PK)             │         │────────────────────────│
-│ user_id (FK)        │         │ id (PK)                │
-│ codigo              │         │ token (UK)             │
-│ creado_en           │         │ user_id (FK)           │
-│ expira_en           │         │ expiration_date        │
-│ usado               │         └────────────────────────┘
-│ intentos_fallidos   │
-│ cantidad_reenvios   │         ┌────────────────────────┐
-│ bloqueos_acumulados │         │  password_reset_tokens │
-│ bloqueado_hasta     │         │────────────────────────│
-│ resultado           │         │ id (PK)                │
-│ fecha_uso           │         │ token (UK)             │
-│ ip_origen           │         │ user_id (FK → users)   │
-└─────────────────────┘         │ expiration_date        │
-                                │ used                   │
-                                └────────────────────────┘
-
-┌─────────────────────────────────┐
-│         service_prices          │
-│─────────────────────────────────│
-│ id (PK)                         │
-│ service_type (UK)               │
-│ display_name                    │
-│ price                           │
-│ description                     │
-│ active                          │
-└─────────────────────────────────┘
-```
-
-> `service_prices` no tiene FK directa con otras tablas. El campo `service_type`
-> coincide por valor con el campo `reason` de `appointments`.
+- `users` → `appointments` mediante `client_id` (cliente que agenda) y `vet_id` (veterinario asignado)
+- `pets` → `appointments` mediante `pet_id`
+- `appointments` → `payments` mediante `appointment_id` (nullable: el pago se conserva aunque se elimine la cita)
+- `users` → `codigos_2fa` mediante `user_id`
+- `users` → `email_verification_token` mediante `user_id`
+- `users` → `password_reset_tokens` mediante `user_id`
+- `service_prices` no tiene FK directa; su campo `service_type` coincide por valor con el campo `reason` de `appointments`
 
 ---
 
