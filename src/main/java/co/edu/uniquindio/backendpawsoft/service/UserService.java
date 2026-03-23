@@ -149,7 +149,7 @@ public class UserService implements UserDetailsService {
     }
 
     public boolean isPasswordStrong(String password) {
-        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$";
         return password.matches(pattern);
     }
 

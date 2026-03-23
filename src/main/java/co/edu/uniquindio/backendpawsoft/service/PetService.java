@@ -16,9 +16,11 @@ import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.PetRequest;
 import co.edu.uniquindio.backendpawsoft.dto.PetResponse;
 import co.edu.uniquindio.backendpawsoft.model.Pet;
+import co.edu.uniquindio.backendpawsoft.repository.AppointmentRepository;
 import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -27,6 +29,7 @@ import java.util.List;
 public class PetService {
 
     private final PetRepository petRepository;
+    private final AppointmentRepository appointmentRepository;
     private final AuditLogService auditLogService;
 
     public List<PetResponse> getByOwner(String email) {
@@ -74,12 +77,16 @@ public class PetService {
         return toResponse(saved);
     }
 
+    @Transactional
     public void delete(Long id, String ownerEmail) {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mascota no encontrada"));
 
         if (!pet.getOwnerEmail().equals(ownerEmail))
             throw new RuntimeException("No tienes permiso para eliminar esta mascota");
+
+        // Eliminar citas asociadas antes de borrar la mascota (evita FK constraint)
+        appointmentRepository.deleteByPetId(id);
 
         petRepository.delete(pet);
 

@@ -127,6 +127,6 @@ public class PasswordResetService {
      */
     private boolean isPasswordStrong(String password) {
         return password != null &&
-                password.matches("^(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).{8,}$");
+                password.matches("^(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$");
     }
 }
