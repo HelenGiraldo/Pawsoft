@@ -2,6 +2,8 @@ package co.edu.uniquindio.backendpawsoft.repository;
 
 import co.edu.uniquindio.backendpawsoft.model.Codigo2FA;
 import co.edu.uniquindio.backendpawsoft.model.User;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -34,11 +36,11 @@ import java.util.Optional;
 public interface Codigo2FARepository extends JpaRepository<Codigo2FA, Long> {
 
     /**
-     * Busca el código 2FA vigente (no usado) asociado a un usuario.
-     *
-     * @param usuario usuario propietario del código
-     * @return Optional con el código 2FA no usado si existe; vacío en caso contrario
+     * Busca el código 2FA vigente (no usado) asociado a un usuario
+     * con lock pesimista para prevenir condición de carrera.
+     * Garantiza que dos requests simultáneas no puedan leer el mismo código activo.
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Codigo2FA> findByUsuarioAndUsadoFalse(User usuario);
 
     /**
