@@ -170,7 +170,7 @@ public class AppointmentService {
             throw new RuntimeException("No se puede cancelar una cita completada");
         }
 
-        if (appointment.getDate().isBefore(LocalDate.now())) {
+        if (appointment.getDate().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new RuntimeException("No se puede cancelar una cita que ya ocurrió");
         }
 
