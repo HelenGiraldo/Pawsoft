@@ -96,4 +96,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     void deleteByPetId(Long petId);
 
     List<Appointment> findByPetId(Long petId);
+
+    /**
+     * Busca citas en estado UPCOMING o CONFIRMED cuya fecha y hora ya pasaron.
+     * Usado por el scheduler para marcarlas automáticamente como NO_SHOW.
+     */
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE a.status IN (:statuses)
+          AND (a.date < :today OR (a.date = :today AND a.time < :now))
+        """)
+    List<Appointment> findPastPendingAppointments(
+            @Param("statuses") List<AppointmentStatus> statuses,
+            @Param("today") LocalDate today,
+            @Param("now") LocalTime now
+    );
 }
