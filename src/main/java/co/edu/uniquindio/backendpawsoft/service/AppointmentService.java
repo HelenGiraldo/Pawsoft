@@ -70,6 +70,10 @@ public class AppointmentService {
         User vet = userRepository.findById(request.vetId())
                 .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
 
+        if (vet.getRole() != co.edu.uniquindio.backendpawsoft.enums.Role.ROLE_VETERINARIO) {
+            throw new RuntimeException("El usuario seleccionado no es un veterinario");
+        }
+
         Pet pet = petRepository.findById(request.petId())
                 .orElseThrow(() -> new NotFoundException("Mascota no encontrada"));
 
@@ -227,6 +231,10 @@ public class AppointmentService {
 
         User vet = userRepository.findById(request.vetId())
                 .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
+
+        if (vet.getRole() != co.edu.uniquindio.backendpawsoft.enums.Role.ROLE_VETERINARIO) {
+            throw new RuntimeException("El usuario seleccionado no es un veterinario");
+        }
 
         Pet pet = petRepository.findById(request.petId())
                 .orElseThrow(() -> new NotFoundException("Mascota no encontrada"));
