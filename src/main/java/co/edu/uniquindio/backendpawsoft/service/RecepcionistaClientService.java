@@ -221,8 +221,9 @@ public class RecepcionistaClientService {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mascota no encontrada: " + id));
 
-        // 1 — Pagos de las citas de esta mascota
-        paymentRepository.deleteByPetName(pet.getName());
+        // 1 — Pagos de las citas de esta mascota (por appointmentId, no por nombre)
+        appointmentRepository.findByPetId(id)
+                .forEach(a -> paymentRepository.deleteByAppointmentId(a.getId()));
 
         // 2 — Citas de esta mascota (FK appointments.pet_id → pets.id)
         appointmentRepository.deleteByPetId(id);

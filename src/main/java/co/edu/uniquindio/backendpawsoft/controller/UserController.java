@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class UserController {
      *
      * @return ResponseEntity con la lista de usuarios y código HTTP 200 (OK).
      */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> getAllUsers(){
         return ResponseEntity.ok(userService.getAllUsers());
@@ -65,6 +67,7 @@ public class UserController {
      * @param id identificador único del usuario.
      * @return ResponseEntity con código HTTP 204 (NO CONTENT) si la eliminación es exitosa.
      */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @DeleteMapping("delete/{id}")
     public ResponseEntity<Void> deleteUser (@PathVariable Long id){
         userService.deleteUser(id);
@@ -77,6 +80,7 @@ public class UserController {
      * @param id identificador único del usuario.
      * @return ResponseEntity con el usuario encontrado y código HTTP 200 (OK).
      */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/get/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id){
         UserResponse user = userService.getUserById(id);
@@ -90,6 +94,7 @@ public class UserController {
      * @param user objeto User con los nuevos datos.
      * @return ResponseEntity con el usuario actualizado y código HTTP 200 (OK).
      */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PutMapping("/update/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserRequest user){
         UserResponse updatedUser = userService.updateUser(id,user);

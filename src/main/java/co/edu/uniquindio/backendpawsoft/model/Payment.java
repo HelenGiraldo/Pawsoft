@@ -37,6 +37,9 @@ import java.time.LocalTime;
 @Entity
 @Table(
         name = "payments",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_payment_appointment", columnNames = "appointment_id")
+        },
         indexes = {
                 @Index(name = "idx_payment_appointment", columnList = "appointment_id"),
                 @Index(name = "idx_payment_client_email", columnList = "client_email"),

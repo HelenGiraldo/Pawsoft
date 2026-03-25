@@ -9,6 +9,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -69,7 +70,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return path.startsWith("/auth/password-reset")
                 || path.startsWith("/auth/login")
                 || path.startsWith("/auth/register")
-                || path.startsWith("/auth/verify-email");
+                || path.startsWith("/auth/verify-email")
+                || path.startsWith("/auth/resend-verification");
     }
 
 
@@ -119,7 +121,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
                                     null,
-                                    List.of(() -> role)
+                                    List.of(new SimpleGrantedAuthority(role))
                             );
 
                     authToken.setDetails(
