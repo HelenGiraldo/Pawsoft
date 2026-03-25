@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
@@ -81,12 +80,6 @@ public class AppointmentService {
 
         if (request.date().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
-        }
-
-        ZonedDateTime nowColombia = ZonedDateTime.now(ZoneId.of("America/Bogota"));
-        if (request.date().isEqual(nowColombia.toLocalDate()) &&
-                request.time().isBefore(nowColombia.toLocalTime())) {
-            throw new RuntimeException("No se pueden agendar citas en horas que ya pasaron");
         }
 
         LocalTime openingTime = LocalTime.of(7, 0);
@@ -245,12 +238,6 @@ public class AppointmentService {
 
         if (request.date().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
-        }
-
-        ZonedDateTime nowCol = ZonedDateTime.now(ZoneId.of("America/Bogota"));
-        if (request.date().isEqual(nowCol.toLocalDate()) &&
-                request.time().isBefore(nowCol.toLocalTime())) {
-            throw new RuntimeException("No se pueden agendar citas en horas que ya pasaron");
         }
 
         if (appointmentRepository.existsByVetIdAndDateAndTime(
