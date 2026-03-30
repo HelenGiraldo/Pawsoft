@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -70,10 +71,14 @@ public class AppointmentService {
         User vet = userRepository.findById(request.vetId())
                 .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
 
+        if (vet.getRole() != co.edu.uniquindio.backendpawsoft.enums.Role.ROLE_VETERINARIO) {
+            throw new RuntimeException("El usuario seleccionado no es un veterinario");
+        }
+
         Pet pet = petRepository.findById(request.petId())
                 .orElseThrow(() -> new NotFoundException("Mascota no encontrada"));
 
-        if (request.date().isBefore(LocalDate.now())) {
+        if (request.date().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
         }
 
@@ -158,7 +163,7 @@ public class AppointmentService {
             throw new RuntimeException("No se puede cancelar una cita completada");
         }
 
-        if (appointment.getDate().isBefore(LocalDate.now())) {
+        if (appointment.getDate().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new RuntimeException("No se puede cancelar una cita que ya ocurrió");
         }
 
@@ -224,8 +229,16 @@ public class AppointmentService {
         User vet = userRepository.findById(request.vetId())
                 .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
 
+        if (vet.getRole() != co.edu.uniquindio.backendpawsoft.enums.Role.ROLE_VETERINARIO) {
+            throw new RuntimeException("El usuario seleccionado no es un veterinario");
+        }
+
         Pet pet = petRepository.findById(request.petId())
                 .orElseThrow(() -> new NotFoundException("Mascota no encontrada"));
+
+        if (request.date().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
+            throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
+        }
 
         if (appointmentRepository.existsByVetIdAndDateAndTime(
                 request.vetId(), request.date(), request.time())) {

@@ -1,5 +1,22 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para operaciones del panel de administración sobre usuarios y mascotas.
+ *
+ * Responsabilidades:
+ * - Listar, crear, actualizar y eliminar usuarios del staff (admin, veterinario, recepcionista).
+ * - Activar/desactivar cuentas de usuario.
+ * - Listar clientes registrados.
+ * - Listar todas las mascotas con datos del propietario.
+ *
+ * La creación de staff reutiliza {@link UserService#createStaffUser} para generar
+ * contraseña temporal y enviar el correo de bienvenida.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
+ * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Profesor: Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.AdminPetResponse;
 import co.edu.uniquindio.backendpawsoft.dto.StaffUserRequest;
@@ -70,12 +87,15 @@ public class AdminUserService {
         return created;
     }
 
-    /** Actualiza nombre y foto de un usuario staff */
+    /** Actualiza nombre, rol y foto de un usuario staff */
     public UserResponse updateStaff(Long id, StaffUserRequest req) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
 
         user.setName(req.getNombre());
+
+        if (req.getRole() != null)
+            user.setRole(req.getRole());
 
         if (req.getPhotoUrl() != null && !req.getPhotoUrl().isBlank())
             user.setPhotoUrl(req.getPhotoUrl());

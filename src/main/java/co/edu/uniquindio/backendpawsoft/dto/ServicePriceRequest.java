@@ -1,5 +1,13 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
+/**
+ * DTO de entrada para crear o actualizar el precio de un servicio veterinario.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
+ * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Profesor: Raúl Yulbraynner Rivera Gálvez
+ */
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

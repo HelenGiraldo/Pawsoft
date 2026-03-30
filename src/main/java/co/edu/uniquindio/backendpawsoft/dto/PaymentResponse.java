@@ -1,5 +1,14 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
+/**
+ * DTO de respuesta con los datos de un pago, incluyendo instantánea de la cita
+ * asociada (cliente, mascota, veterinario, fecha/hora) y estado del cobro.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
+ * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
+ * Profesor: Raúl Yulbraynner Rivera Gálvez
+ */
 import lombok.Builder;
 import lombok.Data;
 

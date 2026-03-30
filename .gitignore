@@ -32,8 +32,16 @@ build/
 ### VS Code ###
 .vscode/
 
+### OS ###
+.DS_Store
+**/.DS_Store
+
+### Logs ###
+*.log
+app.log
+
 ### Documentation ###
-docs/
+# docs/ — se versiona para incluir modelo de BD y arquitectura
 
 ### Configuration with sensitive data ###
 src/main/resources/application.properties

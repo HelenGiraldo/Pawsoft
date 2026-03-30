@@ -74,4 +74,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                                            @Param("to") LocalDate to);
 
     void deleteByPetName(String petName);
+
+    void deleteByAppointmentId(Long appointmentId);
 }

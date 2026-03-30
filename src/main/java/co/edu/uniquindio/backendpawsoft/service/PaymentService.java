@@ -68,14 +68,24 @@ public class PaymentService {
                     "La cita #" + req.getAppointmentId() + " ya tiene un pago registrado");
         }
 
+        LocalDate appointmentDate;
+        LocalTime appointmentTime;
+        try {
+            appointmentDate = LocalDate.parse(req.getAppointmentDate());
+            appointmentTime = LocalTime.parse(req.getAppointmentTime());
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                    "Formato de fecha u hora inválido. Use yyyy-MM-dd y HH:mm");
+        }
+
         Payment payment = Payment.builder()
                 .appointmentId  (req.getAppointmentId())
                 .clientName     (req.getClientName())
                 .clientEmail    (req.getClientEmail())
                 .petName        (req.getPetName())
                 .vetName        (req.getVetName())
-                .appointmentDate(LocalDate.parse(req.getAppointmentDate()))
-                .appointmentTime(LocalTime.parse(req.getAppointmentTime()))
+                .appointmentDate(appointmentDate)
+                .appointmentTime(appointmentTime)
                 .concept        (req.getConcept())
                 .baseAmount     (req.getBaseAmount())
                 .amount         (req.getAmount())

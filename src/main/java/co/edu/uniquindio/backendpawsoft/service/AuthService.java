@@ -335,7 +335,7 @@ public class AuthService {
      * @return {@code true} si cumple todos los requisitos; {@code false} en caso contrario
      */
     private boolean isPasswordStrong(String password) {
-        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$";
         return password.matches(pattern);
     }
 }

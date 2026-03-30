@@ -6,6 +6,7 @@ import co.edu.uniquindio.backendpawsoft.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -44,6 +45,7 @@ public class StaffController {
      *                (nombre, email y rol)
      * @return ResponseEntity con los datos del usuario creado y código HTTP 201 (CREATED)
      */
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PostMapping("/create")
     public ResponseEntity<UserResponse> createStaff(@RequestBody StaffUserRequest request) {
         UserResponse userResponse = userService.createStaffUser(

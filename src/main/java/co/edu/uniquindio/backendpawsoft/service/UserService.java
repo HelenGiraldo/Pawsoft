@@ -6,8 +6,10 @@ import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
 import co.edu.uniquindio.backendpawsoft.enums.Role;
 import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
 import co.edu.uniquindio.backendpawsoft.model.EmailVerificationToken;
+import co.edu.uniquindio.backendpawsoft.model.Pet;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.EmailVerificationTokenRepository;
+import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -44,6 +46,7 @@ public class UserService implements UserDetailsService {
     private final EmailService emailService;
     private final RecaptchaService recaptchaService;
     private final AuditLogService auditLogService;
+    private final PetRepository petRepository;
 
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
@@ -125,8 +128,17 @@ public class UserService implements UserDetailsService {
             );
         }
 
+        // Si el email cambió, transferir mascotas al nuevo email
+        String emailAnterior = existingUser.getEmail();
+        String emailNuevo = userUpdated.getEmail();
+        if (!emailAnterior.equals(emailNuevo)) {
+            List<Pet> mascotas = petRepository.findByOwnerEmail(emailAnterior);
+            mascotas.forEach(pet -> pet.setOwnerEmail(emailNuevo));
+            petRepository.saveAll(mascotas);
+        }
+
         existingUser.setName(userUpdated.getName());
-        existingUser.setEmail(userUpdated.getEmail());
+        existingUser.setEmail(emailNuevo);
         existingUser.setPassword(passwordEncoder.encode(userUpdated.getPassword()));
 
         User savedUser = userRepository.save(existingUser);
@@ -137,7 +149,7 @@ public class UserService implements UserDetailsService {
     }
 
     public boolean isPasswordStrong(String password) {
-        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$";
         return password.matches(pattern);
     }
 

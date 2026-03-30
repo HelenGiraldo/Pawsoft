@@ -1,6 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -42,7 +42,7 @@ public record CreateAppointmentRequest(
          * Debe ser una fecha futura.
          */
         @NotNull
-        @Future
+        @FutureOrPresent
         LocalDate date,
 
         /**

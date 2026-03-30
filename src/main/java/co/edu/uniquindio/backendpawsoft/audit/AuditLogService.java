@@ -55,12 +55,29 @@ public class AuditLogService {
                 return;
             }
 
-            // Tu User implementa directamente UserDetails, el cast es directo
-            User currentUser = (User) auth.getPrincipal();
-
-            Integer userId   = currentUser.getId().intValue();
-            String  userName = currentUser.getName();
-            AuditLog.UserRole userRole = mapRole(currentUser.getRole().name());
+            // Durante el login, el principal puede ser un String (email) en lugar de User
+            Object principal = auth.getPrincipal();
+            
+            Integer userId;
+            String userName;
+            AuditLog.UserRole userRole;
+            
+            if (principal instanceof User) {
+                // Usuario ya autenticado completamente
+                User currentUser = (User) principal;
+                userId = currentUser.getId().intValue();
+                userName = currentUser.getName();
+                userRole = mapRole(currentUser.getRole().name());
+            } else if (principal instanceof String) {
+                // Durante login, el principal es el email/username
+                // En este caso, usamos valores por defecto o los que vienen en entity
+                userId = entityId != null ? entityId : 0;
+                userName = (String) principal;
+                userRole = AuditLog.UserRole.CLIENT; // Valor por defecto
+            } else {
+                log.warn("[AUDIT] Tipo de principal desconocido: {}", principal.getClass().getName());
+                return;
+            }
 
             // IP y User-Agent del request actual
             String ipAddress = null;

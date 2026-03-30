@@ -4,6 +4,7 @@ import co.edu.uniquindio.backendpawsoft.enums.Role;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -42,33 +43,53 @@ public class DataInitializer implements CommandLineRunner {
      */
     private final PasswordEncoder passwordEncoder;
 
+    /** Correo del admin — se lee desde application.properties (no hardcodeado en código). */
+    @Value("${app.admin.email}")
+    private String adminEmail;
+
+    /** Contraseña inicial del admin — se lee desde application.properties. */
+    @Value("${app.admin.password}")
+    private String adminPassword;
+
     /**
      * Método ejecutado al iniciar la aplicación.
      *
-     * Verifica si ya existe el usuario administrador por correo. Si no existe, lo crea con:
-     * - rol ADMIN
-     * - contraseña inicial codificada con BCrypt
-     * - primerAcceso = false (para evitar obligar cambio inmediato de contraseña)
+     * Verifica si ya existe el usuario administrador por correo:
+     * - Si NO existe: Lo crea con enabled = true
+     * - Si existe pero está deshabilitado: Lo habilita automáticamente
+     * - Si existe y está habilitado: No hace nada
+     *
+     * Esto garantiza que siempre haya un admin funcional al arrancar el servidor.
      *
      * @param args argumentos de línea de comandos (no se usan en esta implementación)
      */
     @Override
     public void run(String... args) {
 
-        if (userRepository.findByEmail("helenx.giraldol@uqvirtual.edu.co").isEmpty()) {
+        var existingAdmin = userRepository.findByEmail(adminEmail);
+
+        if (existingAdmin.isEmpty()) {
             User admin = User.builder()
                     .name("Administrador")
-                    .email("helenx.giraldol@uqvirtual.edu.co")
-                    .password(passwordEncoder.encode("Admin123!"))
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(adminPassword))
                     .role(Role.ROLE_ADMIN)
                     .primerAcceso(false)
                     .enabled(true)
                     .build();
 
             userRepository.save(admin);
-            System.out.println("Usuario ADMIN creado: admin@pawsoft.com / Admin123!");
+            System.out.println("✅ Usuario ADMIN creado: " + adminEmail);
         } else {
-            System.out.println("Usuario ADMIN ya existe");
+            User admin = existingAdmin.get();
+
+            if (!admin.isEnabled()) {
+                admin.setEnabled(true);
+                userRepository.save(admin);
+                System.out.println("⚠️ Usuario ADMIN estaba deshabilitado - HABILITADO automáticamente: " + adminEmail);
+            } else {
+                System.out.println("ℹ️ Usuario ADMIN ya existe y está habilitado: " + adminEmail);
+            }
         }
     }
 }
