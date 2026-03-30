@@ -125,66 +125,11 @@ echo "Backup completado: $ARCHIVO"
 0 2 * * * /home/ec2-user/backup-db.sh >> /home/ec2-user/backups/backup.log 2>&1
 ```
 
-**Política de backup:**
+**Política:**
 - Frecuencia: diaria automática.
 - Retención: 7 días (los backups más antiguos se eliminan automáticamente).
 - Almacenamiento: directorio `/home/ec2-user/backups/` en EC2.
 - Log de ejecución: `/home/ec2-user/backups/backup.log`.
-
-### Procedimiento de recuperación
-
-**En caso de pérdida de datos o corrupción de la base de datos:**
-
-1. **Identificar el backup a restaurar:**
-   ```bash
-   ls -lh /home/ec2-user/backups/
-   ```
-   Los archivos tienen formato: `pawsoft_YYYYMMDD_HHMMSS.sql`
-
-2. **Verificar la integridad del backup:**
-   ```bash
-   head -n 20 /home/ec2-user/backups/pawsoft_YYYYMMDD_HHMMSS.sql
-   tail -n 20 /home/ec2-user/backups/pawsoft_YYYYMMDD_HHMMSS.sql
-   ```
-   Debe mostrar comandos SQL válidos al inicio y al final.
-
-3. **Detener la aplicación (opcional pero recomendado):**
-   ```bash
-   sudo systemctl stop pawsoft-backend
-   ```
-
-4. **Restaurar la base de datos:**
-   ```bash
-   mysql -h <host-rds> -u admin -p<password> pawsoft < /home/ec2-user/backups/pawsoft_YYYYMMDD_HHMMSS.sql
-   ```
-
-5. **Verificar la restauración:**
-   ```bash
-   mysql -h <host-rds> -u admin -p<password> -e "USE pawsoft; SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM appointments;"
-   ```
-
-6. **Reiniciar la aplicación:**
-   ```bash
-   sudo systemctl start pawsoft-backend
-   sudo systemctl status pawsoft-backend
-   ```
-
-7. **Verificar funcionamiento:**
-   - Acceder a la aplicación web
-   - Probar login con usuario de prueba
-   - Verificar que los datos se muestran correctamente
-
-**Tiempo estimado de recuperación (RTO):** 15-30 minutos
-
-**Punto de recuperación (RPO):** Máximo 24 horas (última copia de seguridad diaria)
-
-**Responsables:**
-- Administrador del sistema
-- Equipo de desarrollo (en caso de requerir soporte técnico)
-
-**Contacto de emergencia:**
-- Email: [correo del equipo]
-- Documentación adicional: Este archivo
 
 ---
 

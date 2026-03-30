@@ -121,6 +121,9 @@ public class SecurityConfig {
                         // ── Rutas públicas (sin autenticación) ───────────────────────
                         .requestMatchers("/auth/**").permitAll()
 
+                        // ── Chatbot público (disponible para todos) ──────────────────
+                        .requestMatchers("/api/chatbot/**").permitAll()
+
                         // ── Actuator para Prometheus (sin autenticación) ─────────────
                         // Solo expone /actuator/prometheus y /actuator/health.
                         // No expone información sensible de la app.
