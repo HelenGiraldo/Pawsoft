@@ -62,8 +62,9 @@ public class ChatbotController {
                            "lector de pantalla para personas ciegas, desactivar interrupciones para TDAH o autismo.\n\n" +
                            "CONTACTO Y SOPORTE:\n" +
                            "- WhatsApp: 3219806868 (para soporte, consultas, o solicitar baja de la aplicación)\n" +
+                           "- Correo: pawsoft.vet@gmail.com\n" +
                            "- Horario: Lunes a Viernes, 8:00 AM - 6:00 PM\n" +
-                           "- Para darse de baja: Contactar vía WhatsApp solicitando la eliminación de cuenta\n\n" +
+                           "- Para darse de baja: Contactar vía WhatsApp o correo solicitando la eliminación de cuenta\n\n" +
                            "REGLAS ESTRICTAS:\n" +
                            "1. SOLO responde preguntas relacionadas con PawSoft, sus funciones, uso de la aplicación, accesibilidad, soporte, o temas veterinarios generales.\n" +
                            "2. Si te preguntan sobre temas NO relacionados con veterinaria, accesibilidad o la app (política, deportes, entretenimiento, etc.), " +
