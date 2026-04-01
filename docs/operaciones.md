@@ -305,17 +305,17 @@ telnet pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com 3306
 
 **Consultar acciones recientes:**
 ```sql
-SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT 50;
+SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50;
 ```
 
 **Consultar errores de login:**
 ```sql
-SELECT * FROM audit_log WHERE action = 'USER_LOGIN_FAILED' ORDER BY timestamp DESC;
+SELECT * FROM audit_logs WHERE action = 'USER_LOGIN_FAILED' ORDER BY created_at DESC;
 ```
 
 **Consultar acciones de un usuario:**
 ```sql
-SELECT * FROM audit_log WHERE user_id = [ID] ORDER BY timestamp DESC;
+SELECT * FROM audit_logs WHERE user_id = [ID] ORDER BY created_at DESC;
 ```
 
 ---
@@ -688,7 +688,7 @@ Si los tests pasan, desplegar en producción.
 - Cambios en datos críticos (precios, usuarios staff)
 
 ```sql
-SELECT * FROM audit_log WHERE action = 'USER_LOGIN_FAILED' AND timestamp > DATE_SUB(NOW(), INTERVAL 7 DAY);
+SELECT * FROM audit_logs WHERE action = 'USER_LOGIN_FAILED' AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY);
 ```
 
 ---
@@ -736,13 +736,13 @@ git log --oneline --graph --all
 
 ### 16.3 Auditoría en Base de Datos
 
-**Tabla:** `audit_log`
+**Tabla:** `audit_logs`
 
 **Consultar mantenimiento reciente:**
 ```sql
-SELECT * FROM audit_log 
-WHERE timestamp > DATE_SUB(NOW(), INTERVAL 30 DAY)
-ORDER BY timestamp DESC;
+SELECT * FROM audit_logs 
+WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
+ORDER BY created_at DESC;
 ```
 
 ### 16.4 Logs de Sistema
