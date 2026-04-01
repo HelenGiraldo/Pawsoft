@@ -16,7 +16,13 @@ El sistema implementa un mecanismo de autenticación en dos fases:
 - Primera fase: correo electrónico y contraseña validados contra la base de datos con BCrypt.
 - Segunda fase: código OTP de 6 dígitos enviado al correo registrado, con expiración de 3 minutos.
 
-Los tokens JWT emitidos tras la autenticación exitosa tienen una duración limitada y se transmiten únicamente por HTTPS. El frontend los almacena en memoria y los adjunta automáticamente a cada petición mediante un interceptor HTTP.
+Los tokens JWT emitidos tras la autenticación exitosa tienen una duración de 1 hora y se transmiten únicamente por HTTPS. El frontend los almacena en memoria y los adjunta automáticamente a cada petición mediante un interceptor HTTP.
+
+**Sistema de refresh tokens:**
+- Cada login genera un refresh token con duración de 7 días, almacenado cifrado con SHA-256 en la base de datos.
+- El interceptor frontend renueva automáticamente el JWT 5 minutos antes de su expiración o ante errores 403.
+- Los refresh tokens se invalidan al hacer logout o cambiar contraseña.
+- Esto permite sesiones largas de trabajo sin interrupciones, mientras el sistema de inactividad cierra sesión tras períodos sin uso (60 min veterinarios/admin, 30 min recepcionistas, 15 min clientes).
 
 Los usuarios creados por el administrador reciben una contraseña temporal y deben cambiarla obligatoriamente en el primer acceso.
 
@@ -108,7 +114,7 @@ Esta política se aplica en: registro, recuperación de contraseña, cambio de c
 
 ## 8. Copias de seguridad y recuperación
 
-**Estado actual:** backup automático diario configurado en el servidor EC2 mediante `mysqldump` + `cron`.
+**Estado actual:** backup automático diario configurado y funcionando en el servidor EC2 mediante `mysqldump` + `cron`.
 
 **Script de backup** (`/home/ec2-user/backup-db.sh`):
 ```bash
@@ -129,7 +135,8 @@ echo "Backup completado: $ARCHIVO"
 - Frecuencia: diaria automática.
 - Retención: 7 días (los backups más antiguos se eliminan automáticamente).
 - Almacenamiento: directorio `/home/ec2-user/backups/` en EC2.
-- Log de ejecución: `/home/ec2-user/backups/backup.log`.
+- Log de ejecución: `/home/ec2-user/backups/backup.log` registra cada ejecución del cron con timestamp y resultado (éxito o error).
+- Monitoreo: el log permite verificar que el backup automático funciona correctamente sin necesidad de conectarse al servidor.
 
 ---
 
@@ -141,6 +148,7 @@ El sistema registra en la tabla `audit_log` las siguientes acciones críticas:
 |---|---|
 | `APPOINTMENT_CREATE` | Creación de una cita |
 | `APPOINTMENT_CANCEL` | Cancelación de una cita |
+| `APPOINTMENT_START_CANCELLED` | Cancelación de atención médica iniciada |
 | `PAYMENT_CREATE` | Registro de un pago |
 | `PAYMENT_CONFIRMED` | Confirmación de pago |
 | `PAYMENT_REVERTED` | Reversión de pago a pendiente |
@@ -158,13 +166,13 @@ Cada registro incluye: acción, descripción, entidad afectada, ID de la entidad
 
 | Criterio | Estado |
 |---|---|
-| Autenticación de usuarios | Cumple — JWT + 2FA por OTP |
-| Control de acceso por roles | Cumple — RBAC con 4 roles en backend y frontend |
-| Protección de datos sensibles | Cumple — BCrypt, tokens con expiración, secrets fuera del repo |
-| Validación de entradas | Cumple — frontend y backend con reglas explícitas |
-| Prevención de vulnerabilidades | Cumple — fuerza bruta, bots, CORS, inyección SQL |
-| Contraseñas seguras y cifrado | Cumple — política de contraseñas + BCrypt + HTTPS |
-| Protección de la conexión | Cumple — HTTPS en frontend y backend con certificados SSL |
-| Copias de seguridad | Cumple parcialmente — backup manual disponible, sin automatización |
-| Auditoría de eventos | Cumple — tabla `audit_log` con acciones críticas |
-| Políticas documentadas | Cumple — este documento |
+| Autenticación de usuarios | ✅ Cumple — JWT + 2FA por OTP + refresh tokens (7 días) |
+| Control de acceso por roles | ✅ Cumple — RBAC con 4 roles en backend y frontend |
+| Protección de datos sensibles | ✅ Cumple — BCrypt, tokens con expiración, secrets fuera del repo |
+| Validación de entradas | ✅ Cumple — frontend y backend con reglas explícitas |
+| Prevención de vulnerabilidades | ✅ Cumple — fuerza bruta, bots, CORS, inyección SQL |
+| Contraseñas seguras y cifrado | ✅ Cumple — política de contraseñas + BCrypt + HTTPS |
+| Protección de la conexión | ✅ Cumple — HTTPS en frontend y backend con certificados SSL |
+| Copias de seguridad | ✅ Cumple — backup automático diario con cron en EC2 |
+| Auditoría de eventos | ✅ Cumple — tabla `audit_log` con acciones críticas |
+| Políticas documentadas | ✅ Cumple — este documento |
