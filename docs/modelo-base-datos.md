@@ -9,9 +9,13 @@ Base de datos relacional MySQL gestionada con Spring Data JPA / Hibernate.
 - `users` → `appointments` mediante `client_id` (cliente que agenda) y `vet_id` (veterinario asignado)
 - `pets` → `appointments` mediante `pet_id`
 - `appointments` → `payments` mediante `appointment_id` (nullable: el pago se conserva aunque se elimine la cita)
+- `appointments` → `medical_records` mediante `appointment_id`
+- `pets` → `medical_records` mediante `pet_id`
+- `users` → `medical_records` mediante `vet_id`
 - `users` → `codigos_2fa` mediante `user_id`
 - `users` → `email_verification_token` mediante `user_id`
 - `users` → `password_reset_tokens` mediante `user_id`
+- `users` → `refresh_tokens` mediante `user_email`
 - `service_prices` no tiene FK directa; su campo `service_type` coincide por valor con el campo `reason` de `appointments`
 
 ---
@@ -64,7 +68,7 @@ Citas veterinarias. Restricción única sobre `(date, time, vet_id)` para evitar
 | `date` | DATE | Fecha de la cita |
 | `time` | TIME | Hora de la cita |
 | `reason` | VARCHAR(255) | Motivo / tipo de servicio |
-| `status` | VARCHAR | Estado: `PENDIENTE`, `CONFIRMADA`, `COMPLETADA`, `CANCELADA` |
+| `status` | VARCHAR | Estado: `UPCOMING`, `CONFIRMED`, `IN_PROGRESS`, `NO_SHOW`, `CANCELLED`, `COMPLETED` |
 | `client_id` | BIGINT FK → users | Cliente que agenda |
 | `vet_id` | BIGINT FK → users | Veterinario asignado |
 | `pet_id` | BIGINT FK → pets | Mascota de la cita |
@@ -154,6 +158,72 @@ Tokens para el flujo "olvidé mi contraseña".
 | `user_id` | BIGINT FK → users | Usuario que solicitó el restablecimiento |
 | `expiration_date` | DATETIME | Expiración del token (30 min) |
 | `used` | BOOLEAN | `true` si ya fue consumido |
+
+---
+
+### `medical_records`
+Registros médicos de consultas veterinarias.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `appointment_id` | BIGINT FK → appointments | Cita asociada |
+| `pet_id` | BIGINT FK → pets | Mascota atendida |
+| `vet_id` | BIGINT FK → users | Veterinario que realizó la consulta |
+| `peso` | DOUBLE | Peso de la mascota en kg |
+| `temperatura` | DOUBLE | Temperatura en °C |
+| `frecuencia_cardiaca` | INT | Frecuencia cardíaca en bpm |
+| `observaciones_generales` | VARCHAR(1000) | Observaciones del examen físico |
+| `diagnostico_principal` | VARCHAR(500) | Diagnóstico principal |
+| `diagnostico_secundario` | VARCHAR(500) | Diagnóstico secundario (opcional) |
+| `notas_clinicas` | VARCHAR(1000) | Notas clínicas internas del veterinario |
+| `medicamentos` | TEXT | JSON de medicamentos usados durante el procedimiento |
+| `indicaciones` | VARCHAR(1000) | Indicaciones internas del veterinario |
+| `diagnostico_cliente` | VARCHAR(500) | Diagnóstico en lenguaje simple para el propietario |
+| `medicamentos_recetados` | TEXT | JSON de medicamentos recetados para tratar en casa |
+| `indicaciones_cliente` | VARCHAR(1000) | Indicaciones para el propietario |
+| `vacunas_aplicadas` | TEXT | JSON de vacunas aplicadas |
+| `proximo_control_fecha` | DATE | Fecha del próximo control (opcional) |
+| `proximo_control_motivo` | VARCHAR(300) | Motivo del próximo control |
+| `fotos_adjuntas` | TEXT | JSON de URLs de fotos (Cloudinary) |
+| `creado_en` | DATETIME | Fecha de creación |
+| `actualizado_en` | DATETIME | Fecha de última actualización |
+
+---
+
+### `audit_logs`
+Registro de auditoría de acciones críticas del sistema.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `user_id` | INT | ID del usuario que realizó la acción |
+| `user_role` | VARCHAR(20) | Rol del usuario: `ADMIN`, `VETERINARIAN`, `RECEPTIONIST`, `CLIENT` |
+| `user_name` | VARCHAR(100) | Nombre del usuario |
+| `action` | VARCHAR(100) | Código de la acción (ej: `APPOINTMENT_CREATE`, `PAYMENT_CONFIRMED`) |
+| `description` | VARCHAR(255) | Descripción legible de la acción |
+| `entity` | VARCHAR(50) | Tipo de entidad afectada (ej: `APPOINTMENT`, `PAYMENT`, `USER`) |
+| `entity_id` | INT | ID de la entidad afectada |
+| `old_value` | JSON | Valor anterior (opcional, formato JSON) |
+| `new_value` | JSON | Valor nuevo (opcional, formato JSON) |
+| `ip_address` | VARCHAR(45) | Dirección IP del usuario (IPv4/IPv6) |
+| `user_agent` | VARCHAR(255) | User agent del navegador |
+| `created_at` | DATETIME | Timestamp de la acción (inmutable) |
+
+---
+
+### `refresh_tokens`
+Tokens de renovación de sesión con duración de 7 días.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `token_hash` | VARCHAR(500) UK | Hash SHA-256 del refresh token |
+| `user_email` | VARCHAR | Email del usuario propietario |
+| `created_at` | DATETIME | Fecha de creación |
+| `expires_at` | DATETIME | Fecha de expiración (7 días) |
+| `revoked` | BOOLEAN | `true` si fue invalidado (logout o cambio de contraseña) |
+| `device_info` | VARCHAR(100) | Información del dispositivo (opcional) |
 
 ---
 

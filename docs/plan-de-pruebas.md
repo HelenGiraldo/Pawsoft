@@ -167,7 +167,7 @@ mvn test
 Resultado de la última ejecución:
 
 ```
-Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 32, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

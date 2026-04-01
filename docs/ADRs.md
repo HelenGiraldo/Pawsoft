@@ -200,20 +200,20 @@
 
 ---
 
-## ADR-13: Contenerización con Docker
+## ADR-13: Despliegue directo en EC2 con systemd
 
-**Decisión:** Contenerizar el backend con Docker y desplegarlo en EC2 junto con Prometheus y Grafana.
+**Decisión:** Desplegar el backend como JAR ejecutable en EC2 gestionado por systemd.
 
-**Contexto:** Se requiere un entorno reproducible, aislado y con monitoreo de métricas en producción.
+**Contexto:** Se requiere un método de despliegue simple y confiable para un proyecto académico con recursos limitados.
 
 **Alternativas consideradas:**
-- Despliegue directo en EC2
+- Docker
 - Kubernetes
 - Serverless
 
-**Justificación:** Docker proporciona entorno consistente, aislamiento, portabilidad y configuración simple para un proyecto académico.
+**Justificación:** Despliegue directo con systemd es simple, no requiere aprender Docker, consume menos recursos, y systemd proporciona gestión automática de reinicio y logs.
 
-**Consecuencias:** Curva de aprendizaje. Gestión de imágenes y volúmenes. Configuración de red entre contenedores.
+**Consecuencias:** Menos portabilidad que Docker. Configuración de entorno directamente en el servidor. Dependencia de la versión de Java instalada en EC2.
 
 ---
 
@@ -268,7 +268,7 @@
 
 ## ADR-17: Monitoreo con Prometheus y Grafana
 
-**Decisión:** Monitorear el backend con Prometheus (recolección de métricas) y Grafana (visualización) desplegados en Docker.
+**Decisión:** Monitorear el backend con Prometheus (recolección de métricas) y Grafana (visualización) desplegados en el servidor EC2.
 
 **Contexto:** Se requiere visibilidad de métricas de rendimiento, uso de recursos y errores en producción.
 
@@ -279,4 +279,4 @@
 
 **Justificación:** Stack open-source gratuito, integración nativa con Spring Boot (Actuator + Micrometer), dashboards personalizables y despliegue sencillo junto al backend.
 
-**Consecuencias:** Consumo adicional de recursos en EC2. Configuración de métricas y dashboards. Datos no persistentes entre reinicios sin volúmenes configurados. Curva de aprendizaje inicial.
+**Consecuencias:** Consumo adicional de recursos en EC2. Configuración de métricas y dashboards. Curva de aprendizaje inicial.

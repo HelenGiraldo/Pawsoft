@@ -51,7 +51,7 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 - El usuario solicita recuperación ingresando su correo
 - El sistema envía un enlace temporal (válido por 30 minutos)
 - El usuario ingresa nueva contraseña cumpliendo requisitos de seguridad
-- El sistema actualiza la contraseña y notifica por correo
+- El sistema actualiza la contraseña
 
 **Primer acceso de staff:**
 - El administrador crea una cuenta de staff con contraseña temporal
@@ -75,7 +75,7 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 - El nuevo usuario debe cambiar la contraseña en el primer acceso
 
 **Gestión de perfil:**
-- El usuario puede actualizar su nombre, apellido, teléfono y correo
+- El usuario puede actualizar su correo, teléfono y contraseña
 - Para cambios de correo o contraseña, el sistema solicita código OTP de verificación
 - El sistema valida el código antes de aplicar los cambios
 
@@ -120,7 +120,7 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 - La recepcionista puede crear citas para cualquier cliente
 - La recepcionista puede modificar fecha, hora o veterinario de citas existentes
 - La recepcionista puede cancelar citas
-- La recepcionista puede confirmar citas (cambiar estado a CONFIRMED)
+- La recepcionista puede confirmar citas (cambiar estado de UPCOMING a CONFIRMED)
 
 **Visualización de citas (Veterinario):**
 - El veterinario ve sus citas del día en la pestaña "Mis Citas de Hoy"
@@ -191,8 +191,7 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 
 **Consulta de pagos:**
 - El cliente puede ver su historial de pagos con estado y fecha
-- El administrador puede ver todos los pagos del sistema
-- El administrador puede filtrar pagos por estado, fecha o cliente
+- El administrador puede ver todos los pagos del sistema ordenados por fecha
 
 **Estadísticas financieras (Admin):**
 - El administrador puede consultar ingresos totales por período
@@ -209,21 +208,55 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 ### 2.7 Auditoría
 
 **Registro automático:**
-- El sistema registra automáticamente todas las acciones críticas
-- Cada registro incluye: usuario, acción, entidad afectada, timestamp, IP
-- Los registros son inmutables (no se pueden modificar ni eliminar)
 
-**Acciones auditadas:**
-- Creación, modificación y cancelación de citas
-- Inicio y cancelación de atención médica
-- Registro, confirmación y reversión de pagos
-- Creación, actualización y eliminación de precios
-- Cambios en perfil de usuario (correo, teléfono, contraseña)
+El sistema guarda un registro de todas las acciones importantes que ocurren en la plataforma. Cada vez que un usuario realiza una acción crítica, el sistema guarda:
+- Quién lo hizo (nombre y rol del usuario)
+- Qué hizo (tipo de acción)
+- Cuándo lo hizo (fecha y hora exacta)
+- Desde dónde lo hizo (dirección IP)
 
-**Consulta de auditoría (Admin):**
-- El administrador puede consultar el log de auditoría
-- El administrador puede filtrar por usuario, acción, entidad o fecha
-- El sistema muestra los registros ordenados por fecha descendente
+Estos registros no se pueden modificar ni eliminar, garantizando un historial confiable.
+
+**Acciones que se registran:**
+
+Citas:
+- Creación de citas
+- Modificación de citas
+- Cancelación de citas
+- Inicio de atención médica
+- Cancelación de atención iniciada
+- Cierre de atención (cita completada)
+
+Pagos:
+- Registro de pagos
+- Confirmación de cobro
+- Reversión de pagos
+
+Precios:
+- Creación de servicios
+- Actualización de precios
+- Eliminación de servicios
+
+Usuarios:
+- Registro de nuevos clientes
+- Creación de usuarios staff
+- Cambios en perfil (correo, teléfono, contraseña)
+- Activación/desactivación de cuentas
+- Intentos de login fallidos
+
+Mascotas:
+- Registro de mascotas
+- Actualización de datos
+- Eliminación de mascotas
+
+Registros médicos:
+- Guardado de consultas médicas
+
+**Consulta de registros:**
+
+El administrador puede consultar todos los registros de auditoría directamente desde la base de datos usando consultas SQL. Los registros se pueden filtrar por usuario, tipo de acción, entidad afectada o rango de fechas.
+
+Nota: No existe interfaz gráfica para consultar auditoría. El acceso es mediante consultas SQL directas a la tabla `audit_log`.
 
 ---
 
@@ -333,9 +366,9 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 ## 5. Permisos por Rol
 
 ### Cliente
-- Ver y editar su propio perfil
+- Ver y editar su propio perfil (correo, teléfono, contraseña)
 - Registrar y gestionar sus mascotas
-- Agendar, modificar y cancelar sus propias citas
+- Agendar y cancelar sus propias citas
 - Ver su historial de pagos
 - Ver precios de servicios
 
@@ -428,12 +461,11 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 ## 7. Notificaciones del Sistema
 
 **Correos enviados automáticamente:**
-- Verificación de correo al registrarse
-- Código OTP al iniciar sesión
-- Código OTP al cambiar correo o contraseña desde perfil
-- Contraseña temporal al crear usuario staff
-- Enlace de recuperación de contraseña
-- Confirmación de cambio de contraseña
+- Verificación de correo al registrarse (con enlace de activación)
+- Código OTP al iniciar sesión (válido por 3 minutos)
+- Código OTP al solicitar cambio de correo o contraseña desde perfil (válido por 3 minutos)
+- Contraseña temporal al crear usuario staff (por admin o recepcionista)
+- Enlace de recuperación de contraseña (válido por 30 minutos)
 
 **Mensajes en pantalla:**
 - Confirmación de acciones exitosas (cita creada, pago confirmado, etc.)
@@ -457,10 +489,10 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 - Prevención de bots y automatización
 
 ### 8.3 SMTP (Correo electrónico)
-- Envío de códigos OTP
-- Envío de enlaces de verificación
-- Envío de credenciales temporales
-- Notificaciones de cambios en perfil
+- Envío de códigos OTP (válidos por 3 minutos)
+- Envío de enlaces de verificación de correo
+- Envío de credenciales temporales a usuarios staff
+- Envío de enlaces de recuperación de contraseña (válidos por 30 minutos)
 
 ---
 
@@ -477,7 +509,7 @@ El sistema reemplaza procesos manuales tradicionales que generan desorden, pérd
 - El sistema muestra confirmaciones visuales de acciones exitosas
 - Los formularios validan en tiempo real
 - El sistema previene acciones accidentales con modales de confirmación
-- El sistema guarda borradores automáticamente en formularios largos
+- El formulario de consulta médica guarda borradores automáticamente
 
 ### 9.3 Responsive Design
 - El sistema funciona en dispositivos móviles, tablets y computadores
