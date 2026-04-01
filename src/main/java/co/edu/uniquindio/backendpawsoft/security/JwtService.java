@@ -52,6 +52,12 @@ public class JwtService {
     private long jwtExpiration;
 
     /**
+     * Tiempo de expiración del refresh token en milisegundos (7 días).
+     */
+    @Value("${jwt.refresh.expiration:604800000}")
+    private long refreshExpiration;
+
+    /**
      * Genera un token JWT para un usuario autenticado.
      *
      * El token incluye:
@@ -179,5 +185,37 @@ public class JwtService {
      */
     public String extractRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
+    }
+
+    /**
+     * Genera un refresh token JWT para un usuario autenticado.
+     * El refresh token tiene una expiración de 7 días y solo contiene el email.
+     *
+     * @param userEmail email del usuario
+     * @return refresh token JWT firmado
+     */
+    public String generateRefreshToken(String userEmail) {
+        return Jwts.builder()
+                .claim("type", "refresh")
+                .setSubject(userEmail)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Valida si un refresh token es válido (firma correcta y no expirado).
+     *
+     * @param token refresh token JWT
+     * @return true si el token es válido, false en caso contrario
+     */
+    public boolean isRefreshTokenValid(String token) {
+        try {
+            extractAllClaims(token);
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

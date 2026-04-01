@@ -90,6 +90,11 @@ public class MedicalRecord {
     @Column(length = 300)
     private String proximoControlMotivo;
 
+    // ── Archivos adjuntos ──────────────────────────────────────────────────
+    /** JSON serializado de URLs de fotos (radiografías, análisis, etc.) subidas a Cloudinary. */
+    @Column(columnDefinition = "TEXT")
+    private String fotosAdjuntas;
+
     // ── Auditoría ──────────────────────────────────────────────────────────
     @Column(nullable = false)
     private LocalDateTime creadoEn;

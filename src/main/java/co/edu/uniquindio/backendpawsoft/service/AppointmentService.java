@@ -404,4 +404,72 @@ public class AppointmentService {
                 .map(this::mapToRecepResponse)
                 .toList();
     }
+
+    /**
+     * Inicia la atención de una cita (CONFIRMED → IN_PROGRESS).
+     * Valida que no haya otra cita en progreso para el mismo veterinario.
+     *
+     * @param id identificador de la cita
+     * @param vetEmail correo del veterinario autenticado
+     * @throws RuntimeException si ya hay una cita en progreso o la cita no está confirmada
+     */
+    public void startAppointment(Long id, String vetEmail) {
+        User vet = userRepository.findByEmail(vetEmail)
+                .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
+
+        if (!appointment.getVet().getId().equals(vet.getId())) {
+            throw new RuntimeException("Esta cita no está asignada a ti");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new RuntimeException("Solo se pueden iniciar citas confirmadas");
+        }
+
+        // Verificar que no haya otra cita en progreso
+        boolean hasInProgress = appointmentRepository
+                .findByVetIdOrderByDateAscTimeAsc(vet.getId())
+                .stream()
+                .anyMatch(a -> a.getStatus() == AppointmentStatus.IN_PROGRESS && !a.getId().equals(id));
+
+        if (hasInProgress) {
+            throw new RuntimeException("Ya tienes una cita en progreso. Debes cerrarla antes de iniciar otra.");
+        }
+
+        appointment.setStatus(AppointmentStatus.IN_PROGRESS);
+        appointmentRepository.save(appointment);
+
+        auditLogService.log("APPOINTMENT_START", "Cita iniciada por veterinario", "APPOINTMENT", id.intValue());
+    }
+
+    /**
+     * Cancela una atención iniciada por error (IN_PROGRESS → CONFIRMED).
+     * Permite al veterinario revertir el inicio de una cita equivocada.
+     *
+     * @param id identificador de la cita
+     * @param vetEmail correo del veterinario autenticado
+     * @throws RuntimeException si la cita no está en progreso o no pertenece al veterinario
+     */
+    public void cancelStartedAppointment(Long id, String vetEmail) {
+        User vet = userRepository.findByEmail(vetEmail)
+                .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
+
+        if (!appointment.getVet().getId().equals(vet.getId())) {
+            throw new RuntimeException("Esta cita no está asignada a ti");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.IN_PROGRESS) {
+            throw new RuntimeException("Solo se pueden cancelar citas en progreso");
+        }
+
+        appointment.setStatus(AppointmentStatus.CONFIRMED);
+        appointmentRepository.save(appointment);
+
+        auditLogService.log("APPOINTMENT_CANCEL_START", "Atención cancelada por veterinario", "APPOINTMENT", id.intValue());
+    }
 }

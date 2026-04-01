@@ -53,6 +53,10 @@ public class LoginResponse {
      */
     private String token;
 
+    /**
+     * Refresh token para renovar el access token sin re-autenticación.
+     */
+    private String refreshToken;
 
     private boolean mustChangePassword;
 }

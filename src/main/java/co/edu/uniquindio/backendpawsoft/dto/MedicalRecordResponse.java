@@ -65,6 +65,9 @@ public record MedicalRecordResponse(
         LocalDate proximoControlFecha,
         String proximoControlMotivo,
 
+        // Archivos adjuntos
+        String fotosAdjuntas,
+
         // Auditoría
         LocalDateTime creadoEn,
         LocalDateTime actualizadoEn

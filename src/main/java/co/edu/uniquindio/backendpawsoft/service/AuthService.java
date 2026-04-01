@@ -63,6 +63,7 @@ public class AuthService {
     private final EmailService emailService;
     private final RecaptchaService recaptchaService;
     private final AuditLogService auditLogService;
+    private final RefreshTokenService refreshTokenService;
 
     // ── Fase 1: Login ─────────────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole().name(),
                 null,
+                null,
                 false
         );
     }
@@ -157,6 +159,7 @@ public class AuthService {
         twoFactorService.validarCodigo(user, ingresado, ipOrigen);
 
         String token = jwtService.generateToken(user);
+        String refreshToken = refreshTokenService.createRefreshToken(user.getEmail(), "web");
 
         // Los usuarios distintos a ROLE_CLIENTE deben cambiar la contraseña en el primer acceso
         boolean mustChange = user.isPrimerAcceso()
@@ -169,6 +172,7 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole().name(),
                 token,
+                refreshToken,
                 mustChange
         );
     }
@@ -207,6 +211,7 @@ public class AuthService {
                 "Código de verificación reenviado al correo",
                 user.getEmail(),
                 user.getRole().name(),
+                null,
                 null,
                 false
         );
@@ -253,6 +258,7 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtService.generateToken(user);
+        String refreshToken = refreshTokenService.createRefreshToken(user.getEmail(), "web");
 
         auditLogService.log("USER_CHANGE_PASSWORD_FIRST", "Cambio de contraseña en primer acceso", "USER", user.getId().intValue());
 
@@ -261,6 +267,7 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole().name(),
                 token,
+                refreshToken,
                 false
         );
     }
@@ -337,5 +344,41 @@ public class AuthService {
     private boolean isPasswordStrong(String password) {
         String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,}$";
         return password.matches(pattern);
+    }
+
+    // ── Refresh Token ─────────────────────────────────────────────────────────
+
+    /**
+     * Renueva el access token usando un refresh token válido.
+     */
+    public LoginResponse refreshToken(String refreshToken) {
+        String userEmail = refreshTokenService.validateRefreshToken(refreshToken);
+        
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        String newAccessToken = jwtService.generateToken(user);
+        String newRefreshToken = refreshTokenService.createRefreshToken(user.getEmail(), "web");
+
+        // Revocar el refresh token anterior
+        refreshTokenService.revokeRefreshToken(refreshToken);
+
+        auditLogService.log("USER_REFRESH_TOKEN", "Token renovado exitosamente", "USER", user.getId().intValue());
+
+        return new LoginResponse(
+                "Token renovado exitosamente",
+                user.getEmail(),
+                user.getRole().name(),
+                newAccessToken,
+                newRefreshToken,
+                false
+        );
+    }
+
+    /**
+     * Cierra la sesión del usuario revocando su refresh token.
+     */
+    public void logout(String refreshToken) {
+        refreshTokenService.revokeRefreshToken(refreshToken);
     }
 }

@@ -37,5 +37,8 @@ public record MedicalRecordRequest(
         // Vacunas y controles
         String vacunasAplicadas,   // JSON string de vacunas aplicadas
         LocalDate proximoControlFecha,
-        String proximoControlMotivo
+        String proximoControlMotivo,
+
+        // Archivos adjuntos
+        String fotosAdjuntas       // JSON string de URLs de fotos (radiografías, etc.)
 ) {}

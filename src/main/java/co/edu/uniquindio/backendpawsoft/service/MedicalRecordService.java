@@ -49,6 +49,11 @@ public class MedicalRecordService {
         Appointment appointment = appointmentRepository.findById(request.appointmentId())
                 .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
 
+        // Validar que la cita esté en progreso si se intenta cerrar
+        if (cerrar && appointment.getStatus() != AppointmentStatus.IN_PROGRESS) {
+            throw new RuntimeException("Solo se pueden cerrar citas que estén en progreso");
+        }
+
         // Crear o actualizar
         MedicalRecord record = medicalRecordRepository
                 .findByAppointmentId(request.appointmentId())
@@ -73,6 +78,7 @@ public class MedicalRecordService {
         record.setVacunasAplicadas(request.vacunasAplicadas());
         record.setProximoControlFecha(request.proximoControlFecha());
         record.setProximoControlMotivo(request.proximoControlMotivo());
+        record.setFotosAdjuntas(request.fotosAdjuntas());
 
         if (cerrar) {
             appointment.setStatus(AppointmentStatus.COMPLETED);
@@ -146,6 +152,7 @@ public class MedicalRecordService {
                 r.getVacunasAplicadas(),
                 r.getProximoControlFecha(),
                 r.getProximoControlMotivo(),
+                r.getFotosAdjuntas(),
                 r.getCreadoEn(),
                 r.getActualizadoEn()
         );

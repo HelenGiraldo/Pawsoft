@@ -37,4 +37,30 @@ public class VetAppointmentController {
         String email = authentication.getName();
         return ResponseEntity.ok(appointmentService.getAppointmentsByVet(email));
     }
+
+    /**
+     * Inicia la atención de una cita (CONFIRMED → IN_PROGRESS).
+     * POST /api/vet/appointments/{id}/start
+     */
+    @PostMapping("/{id}/start")
+    public ResponseEntity<Void> startAppointment(
+            @PathVariable Long id,
+            Authentication authentication) {
+        String email = authentication.getName();
+        appointmentService.startAppointment(id, email);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Cancela una atención iniciada por error (IN_PROGRESS → CONFIRMED).
+     * POST /api/vet/appointments/{id}/cancel-start
+     */
+    @PostMapping("/{id}/cancel-start")
+    public ResponseEntity<Void> cancelStartedAppointment(
+            @PathVariable Long id,
+            Authentication authentication) {
+        String email = authentication.getName();
+        appointmentService.cancelStartedAppointment(id, email);
+        return ResponseEntity.ok().build();
+    }
 }

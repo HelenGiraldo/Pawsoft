@@ -78,6 +78,22 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
+        LoginResponse response = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok(Map.of("mensaje", "Sesión cerrada exitosamente"));
+    }
+
     // ── Contraseña ────────────────────────────────────────────────────────────
 
     @PostMapping("/change-password-first")

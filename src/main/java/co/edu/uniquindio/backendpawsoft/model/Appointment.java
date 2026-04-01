@@ -71,7 +71,7 @@ public class Appointment {
      * Estado actual de la cita dentro del flujo del sistema.
      */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private AppointmentStatus status;
 
     /**

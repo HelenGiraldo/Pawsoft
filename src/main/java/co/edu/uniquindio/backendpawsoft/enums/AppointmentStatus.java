@@ -5,15 +5,16 @@ package co.edu.uniquindio.backendpawsoft.enums;
  * dentro del sistema Pawsoft.
  *
  * Ciclo de vida:
- *   UPCOMING → CONFIRMED → COMPLETED
- *                        → NO_SHOW
+ *   UPCOMING → CONFIRMED → IN_PROGRESS → COMPLETED
+ *                                      → NO_SHOW
  *   Cualquier estado activo → CANCELLED
  *
- * UPCOMING  : cita recién agendada por el cliente o recepcionista.
- * CONFIRMED : cita confirmada por el recepcionista.
- * NO_SHOW   : el cliente no se presentó (marcado por recepcionista).
- * CANCELLED : cita cancelada (cliente o recepcionista).
- * COMPLETED : cita atendida y finalizada.
+ * UPCOMING    : cita recién agendada por el cliente o recepcionista.
+ * CONFIRMED   : cita confirmada por el recepcionista.
+ * IN_PROGRESS : cita en atención activa por el veterinario.
+ * NO_SHOW     : el cliente no se presentó (marcado por recepcionista).
+ * CANCELLED   : cita cancelada (cliente o recepcionista).
+ * COMPLETED   : cita atendida y finalizada.
  *
  * Proyecto: Pawsoft — Software III
  * Autoras: Valentina Porras · Helen Xiomara Giraldo
@@ -26,6 +27,9 @@ public enum AppointmentStatus {
 
     /** Cita confirmada por el recepcionista. */
     CONFIRMED,
+
+    /** Cita en atención activa por el veterinario. */
+    IN_PROGRESS,
 
     /** El cliente no se presentó a la cita. */
     NO_SHOW,
