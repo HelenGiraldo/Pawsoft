@@ -413,6 +413,15 @@ public class AppointmentService {
      * @param vetEmail correo del veterinario autenticado
      * @throws RuntimeException si ya hay una cita en progreso o la cita no está confirmada
      */
+    /**
+     * Inicia una atención médica cambiando el estado de la cita a IN_PROGRESS.
+     * Valida que el veterinario no tenga otra cita en progreso simultáneamente.
+     *
+     * @param id ID de la cita a iniciar
+     * @param vetEmail Email del veterinario que inicia la atención
+     * @throws NotFoundException si la cita o veterinario no existen
+     * @throws RuntimeException si la cita no está confirmada o ya hay otra cita en progreso
+     */
     public void startAppointment(Long id, String vetEmail) {
         User vet = userRepository.findByEmail(vetEmail)
                 .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
@@ -451,6 +460,15 @@ public class AppointmentService {
      * @param id identificador de la cita
      * @param vetEmail correo del veterinario autenticado
      * @throws RuntimeException si la cita no está en progreso o no pertenece al veterinario
+     */
+    /**
+     * Cancela una atención médica iniciada por error, revirtiendo el estado de IN_PROGRESS a CONFIRMED.
+     * Permite al veterinario corregir si inició la cita equivocada.
+     *
+     * @param id ID de la cita a cancelar
+     * @param vetEmail Email del veterinario que cancela la atención
+     * @throws NotFoundException si la cita o veterinario no existen
+     * @throws RuntimeException si la cita no está en progreso
      */
     public void cancelStartedAppointment(Long id, String vetEmail) {
         User vet = userRepository.findByEmail(vetEmail)
