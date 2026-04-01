@@ -90,6 +90,16 @@ public class AuthService {
      *                               o la cuenta está bloqueada
      * @throws NotFoundException     si el email no corresponde a ningún usuario registrado
      */
+    /**
+     * Autentica un usuario con email y contraseña.
+     * Valida reCAPTCHA, verifica credenciales, controla intentos fallidos y envía código 2FA.
+     *
+     * @param loginRequest datos de login (email, password, recaptchaToken)
+     * @param ipOrigen dirección IP del cliente
+     * @return respuesta con mensaje de código 2FA enviado
+     * @throws UnauthorizedException si reCAPTCHA falla, credenciales inválidas o cuenta bloqueada
+     * @throws RuntimeException si el correo no está verificado
+     */
     public LoginResponse login(LoginRequest loginRequest, String ipOrigen) {
 
         // Valida reCAPTCHA antes de cualquier consulta a BD
@@ -235,6 +245,16 @@ public class AuthService {
      * @throws UnauthorizedException si el usuario ya cambió la contraseña, si la nueva
      *                               no cumple los requisitos o si es igual a la actual
      */
+    /**
+     * Cambia la contraseña temporal en el primer acceso de usuarios staff.
+     * Valida que la contraseña cumpla requisitos de seguridad y marca la cuenta como activa.
+     *
+     * @param email email del usuario
+     * @param newPassword nueva contraseña
+     * @return respuesta con JWT y refresh token
+     * @throws NotFoundException si el usuario no existe
+     * @throws UnauthorizedException si el usuario ya cambió la contraseña o la nueva contraseña no cumple requisitos
+     */
     public LoginResponse changePasswordFirstLogin(String email, String newPassword) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
@@ -351,6 +371,15 @@ public class AuthService {
     /**
      * Renueva el access token usando un refresh token válido.
      */
+    /**
+     * Renueva el JWT usando un refresh token válido.
+     * Genera un nuevo JWT y un nuevo refresh token, revocando el anterior.
+     *
+     * @param refreshToken refresh token actual
+     * @return respuesta con nuevo JWT y refresh token
+     * @throws RuntimeException si el refresh token es inválido, expirado o revocado
+     * @throws NotFoundException si el usuario no existe
+     */
     public LoginResponse refreshToken(String refreshToken) {
         String userEmail = refreshTokenService.validateRefreshToken(refreshToken);
         
@@ -377,6 +406,11 @@ public class AuthService {
 
     /**
      * Cierra la sesión del usuario revocando su refresh token.
+     */
+    /**
+     * Cierra la sesión del usuario revocando su refresh token.
+     *
+     * @param refreshToken refresh token a revocar
      */
     public void logout(String refreshToken) {
         refreshTokenService.revokeRefreshToken(refreshToken);
