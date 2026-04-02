@@ -212,46 +212,37 @@ cd backendPawsoft
 
 ## Despliegue en Producción
 
-### Backend (AWS EC2)
+### Backend (Azure App Service)
 
 1. Compilar JAR:
 ```bash
 ./mvnw clean package -DskipTests
 ```
 
-2. Transferir JAR al servidor:
+2. Desplegar a Azure:
 ```bash
-scp -i key.pem target/backendpawsoft-0.0.1-SNAPSHOT.jar ec2-user@servidor:/home/ec2-user/
+az webapp deploy --resource-group pawsoft-rg --name pawsoft-backend --src-path target/backendpawsoft-0.0.1-SNAPSHOT.jar
 ```
 
-3. Configurar variables de entorno en el servidor
+3. Configurar variables de entorno en Azure Portal o CLI
 
-4. Ejecutar con systemd o como proceso:
-```bash
-java -jar backendpawsoft-0.0.1-SNAPSHOT.jar
-```
+4. La aplicación se ejecuta automáticamente en: `https://pawsoft-backend.azurewebsites.net`
 
-### Base de Datos (AWS RDS)
+### Base de Datos (Clever Cloud MySQL)
 
-Configurar MySQL en RDS con:
-- Motor: MySQL 8.0
-- Instancia: db.t3.micro o superior
-- Almacenamiento: 20GB SSD
-- Backups automáticos habilitados
+Base de datos MySQL 8.0 gestionada en Clever Cloud:
+- Plan: Gratis permanente
+- Host: bjupuy...clever-cloud.com
+- Backups automáticos incluidos en el plan
+- Acceso mediante credenciales proporcionadas por Clever Cloud
 
 ### Backups
 
-Script de backup automático configurado en EC2 con cron (diario a las 2:00 AM):
+Los backups son gestionados automáticamente por Clever Cloud. Para backups manuales adicionales, usar:
 
 ```bash
-#!/bin/bash
-FECHA=$(date +%Y%m%d_%H%M%S)
-ARCHIVO="/home/ec2-user/backups/pawsoft_$FECHA.sql"
-mysqldump -h host-rds -u admin -ppassword pawsoft > "$ARCHIVO"
-find /home/ec2-user/backups -name "*.sql" -mtime +7 -delete
+mysqldump -h bjupuy...clever-cloud.com -u [user] -p pawsoft > backup_$(date +%Y%m%d).sql
 ```
-
-Retención: 7 días
 
 ---
 

@@ -30,15 +30,15 @@
 **Propósito:** Sistema en operación para usuarios finales.
 
 **Infraestructura:**
-- Backend: AWS EC2 (`api.pawsoft.online`)
-- Frontend: AWS CloudFront con S3
-- Base de datos: AWS RDS MySQL 8.0
+- Backend: Azure App Service (`pawsoft-backend.azurewebsites.net`)
+- Frontend: Netlify (`pawsoft.online`)
+- Base de datos: Clever Cloud MySQL 8.0
 
 **Configuración:**
-- Variables de entorno en servidor EC2
-- Certificados SSL configurados
+- Variables de entorno en Azure App Service
+- Certificados SSL configurados automáticamente
 - Credenciales de producción para servicios externos
-- Backups automáticos habilitados
+- Backups automáticos habilitados en Clever Cloud
 
 ---
 
@@ -54,34 +54,19 @@ cd backendPawsoft
 ./mvnw clean package -DskipTests
 ```
 
-2. Transferir JAR al servidor:
+2. Desplegar a Azure App Service:
 ```bash
-scp -i pawsoft-key.pem target/backendpawsoft-0.0.1-SNAPSHOT.jar ec2-user@3.135.224.139:/home/ec2-user/
+az webapp deploy --resource-group pawsoft-rg --name pawsoft-backend --src-path target/backendpawsoft-0.0.1-SNAPSHOT.jar
 ```
 
-3. Conectarse al servidor:
+3. Verificar que el servicio esté corriendo:
 ```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
+az webapp show --resource-group pawsoft-rg --name pawsoft-backend --query state
 ```
 
-4. Detener la aplicación actual:
+4. Ver logs en tiempo real:
 ```bash
-sudo systemctl stop pawsoft-backend
-```
-
-5. Reemplazar el JAR:
-```bash
-mv backendpawsoft-0.0.1-SNAPSHOT.jar /opt/pawsoft/backend.jar
-```
-
-6. Iniciar la aplicación:
-```bash
-sudo systemctl start pawsoft-backend
-```
-
-7. Verificar que el servicio esté corriendo:
-```bash
-sudo systemctl status pawsoft-backend
+az webapp log tail --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 ### 2.2 Despliegue de Frontend
@@ -94,15 +79,14 @@ cd Front-end-pawsoft
 npm run build
 ```
 
-2. Sincronizar con S3:
+2. Desplegar a Netlify:
 ```bash
-aws s3 sync dist/pawsoft s3://pawsoft-frontend --delete
+netlify deploy --prod --dir=dist/pawsoft
 ```
 
-3. Invalidar caché de CloudFront:
-```bash
-aws cloudfront create-invalidation --distribution-id [ID] --paths "/*"
-```
+O mediante integración continua con Git (recomendado):
+- Push a la rama principal
+- Netlify despliega automáticamente
 
 ### 2.3 Migraciones de Base de Datos
 
@@ -110,7 +94,7 @@ aws cloudfront create-invalidation --distribution-id [ID] --paths "/*"
 
 1. Conectarse a la base de datos de producción:
 ```bash
-mysql -h pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com -u admin -p
+mysql -h bjupuy...clever-cloud.com -u [user] -p
 ```
 
 2. Ejecutar el script de migración:
@@ -134,36 +118,37 @@ DESCRIBE nombre_tabla;
 
 **Configuración actual:**
 
-Script de backup en `/home/ec2-user/backup-db.sh`:
+Los backups son gestionados automáticamente por Clever Cloud:
+- Frecuencia: Diaria
+- Retención: Según plan contratado
+- Ubicación: Infraestructura de Clever Cloud
+
+**Backup manual adicional (opcional):**
+
+Script de backup local:
 ```bash
 #!/bin/bash
 FECHA=$(date +%Y%m%d_%H%M%S)
-ARCHIVO="/home/ec2-user/backups/pawsoft_$FECHA.sql"
-mysqldump -h pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com -u admin -p[PASSWORD] pawsoft > "$ARCHIVO"
-find /home/ec2-user/backups -name "*.sql" -mtime +7 -delete
+ARCHIVO="./backups/pawsoft_$FECHA.sql"
+mysqldump -h bjupuy...clever-cloud.com -u [user] -p[PASSWORD] pawsoft > "$ARCHIVO"
+find ./backups -name "*.sql" -mtime +7 -delete
 echo "Backup completado: $ARCHIVO"
 ```
 
-**Cron configurado:**
-```
-0 2 * * * /home/ec2-user/backup-db.sh >> /home/ec2-user/backups/backup.log 2>&1
-```
-
-**Ejecución:** Diario a las 2:00 AM UTC  
-**Retención:** 7 días  
-**Ubicación:** `/home/ec2-user/backups/`
+**Ejecución:** Configurar cron local si se desea backup adicional  
+**Retención:** 7 días (configurable)
 
 ### 3.2 Verificar Backups
 
-Conectarse al servidor y listar backups:
-```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
-ls -lh /home/ec2-user/backups/
-```
+**Backups automáticos de Clever Cloud:**
+- Acceder al panel de Clever Cloud
+- Ir a la sección de backups de la base de datos
+- Ver historial y descargar si es necesario
 
-Ver log de ejecución:
+**Backups manuales locales (si configurados):**
 ```bash
-tail -20 /home/ec2-user/backups/backup.log
+ls -lh ./backups/
+tail -20 ./backups/backup.log
 ```
 
 ### 3.3 Backup Manual
@@ -171,8 +156,7 @@ tail -20 /home/ec2-user/backups/backup.log
 Si se necesita un backup inmediato antes de un cambio crítico:
 
 ```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
-/home/ec2-user/backup-db.sh
+mysqldump -h bjupuy...clever-cloud.com -u [user] -p pawsoft > backup_manual_$(date +%Y%m%d).sql
 ```
 
 ---
@@ -185,34 +169,29 @@ ssh -i pawsoft-key.pem ec2-user@3.135.224.139
 
 **Pasos:**
 
-1. Conectarse al servidor EC2:
+1. Descargar el backup desde Clever Cloud o usar backup local
+
+2. Conectarse a la base de datos:
 ```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
+mysql -h bjupuy...clever-cloud.com -u [user] -p
 ```
 
-2. Listar backups disponibles:
+3. Restaurar la base de datos:
 ```bash
-ls -lh /home/ec2-user/backups/
+mysql -h bjupuy...clever-cloud.com -u [user] -p pawsoft < backup_20260401.sql
 ```
 
-3. Seleccionar el backup a restaurar (ejemplo: `pawsoft_20260401_020001.sql`)
-
-4. Restaurar la base de datos:
+4. Verificar que los datos se restauraron correctamente:
 ```bash
-mysql -h pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com -u admin -p pawsoft < /home/ec2-user/backups/pawsoft_20260401_020001.sql
-```
-
-5. Verificar que los datos se restauraron correctamente:
-```bash
-mysql -h pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com -u admin -p
+mysql -h bjupuy...clever-cloud.com -u [user] -p
 USE pawsoft;
 SELECT COUNT(*) FROM users;
 SELECT COUNT(*) FROM appointments;
 ```
 
-6. Reiniciar el backend para limpiar caché:
+5. Reiniciar el backend en Azure:
 ```bash
-sudo systemctl restart pawsoft-backend
+az webapp restart --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 **Tiempo estimado de recuperación:** 5-10 minutos dependiendo del tamaño del backup.
@@ -223,81 +202,75 @@ sudo systemctl restart pawsoft-backend
 
 **Pasos:**
 
-1. Verificar estado del servicio:
+1. Verificar estado del servicio en Azure:
 ```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
-sudo systemctl status pawsoft-backend
+az webapp show --resource-group pawsoft-rg --name pawsoft-backend --query state
 ```
 
 2. Ver logs de error:
 ```bash
-sudo journalctl -u pawsoft-backend -n 100 --no-pager
+az webapp log tail --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 3. Reiniciar el servicio:
 ```bash
-sudo systemctl restart pawsoft-backend
+az webapp restart --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 4. Si el problema persiste, verificar:
-   - Conexión a la base de datos RDS
-   - Espacio en disco del servidor
-   - Memoria disponible
+   - Conexión a la base de datos Clever Cloud
+   - Variables de entorno en Azure App Service
+   - Cuota de recursos del plan gratuito
 
 5. Como último recurso, redesplegar la última versión estable
 
 ### 4.3 Recuperación ante Fallo de Base de Datos
 
-**Escenario:** La base de datos RDS no responde.
+**Escenario:** La base de datos no responde.
 
 **Pasos:**
 
-1. Verificar estado de RDS en AWS Console
+1. Verificar estado en el panel de Clever Cloud
 
-2. Verificar conectividad desde EC2:
+2. Verificar conectividad:
 ```bash
-telnet pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com 3306
+telnet bjupuy...clever-cloud.com 3306
 ```
 
-3. Si RDS está caído, AWS lo reiniciará automáticamente
+3. Si Clever Cloud reporta problemas, esperar resolución automática
 
-4. Si el problema persiste, contactar soporte de AWS
+4. Si el problema persiste, contactar soporte de Clever Cloud
 
-5. Mientras tanto, restaurar desde el backup más reciente en una nueva instancia RDS
+5. Mientras tanto, restaurar desde el backup más reciente
 
 ---
 
 ## 5. Monitoreo del Sistema
 
-### 5.1 Prometheus + Grafana
+### 5.1 Azure Application Insights
 
-**Configuración:** Stack completo de monitoreo con Prometheus recolectando métricas y Grafana para visualización.
+**Configuración:** Monitoreo integrado con Azure App Service.
 
-**Prometheus:**
-- URL: `http://3.135.224.139:9090`
-- Recolecta métricas del backend Spring Boot
-
-**Grafana:**
-- URL: `http://3.135.224.139:3000` (requiere credenciales)
-- Dashboard principal: PawSoft Métricas de Negocio
-- Actualización: Cada 30 segundos
+**Azure Portal:**
+- URL: https://portal.azure.com
+- Navegar a: App Services → pawsoft-backend → Application Insights
 
 **Métricas disponibles:**
-- Métricas de negocio (citas, usuarios, servicios)
 - Tiempo de respuesta de endpoints
 - Cantidad de requests por endpoint
 - Errores HTTP (4xx, 5xx)
-- Uso de memoria JVM
-- Threads activos
+- Uso de memoria y CPU
+- Disponibilidad del servicio
 
 ### 5.2 Logs de Aplicación
 
-**Backend:**
-- Logs de aplicación: `sudo journalctl -u pawsoft-backend -f`
-- Logs de errores: `sudo journalctl -u pawsoft-backend -p err`
+**Backend (Azure):**
+- Logs en tiempo real: `az webapp log tail --resource-group pawsoft-rg --name pawsoft-backend`
+- Logs históricos: Acceder desde Azure Portal → App Services → Log stream
 
-**Backup:**
-- Log de ejecución: `/home/ec2-user/backups/backup.log`
+**Base de datos (Clever Cloud):**
+- Logs disponibles en el panel de Clever Cloud
+- Sección: Logs & Metrics
 
 ### 5.3 Auditoría de Acciones
 
@@ -423,21 +396,21 @@ DELETE FROM refresh_tokens WHERE revoked = true AND created_at < DATE_SUB(NOW(),
 ### 8.2 Procedimientos de Contingencia
 
 **Si el backend no responde:**
-1. Verificar estado del servicio
-2. Revisar logs de error
-3. Reiniciar el servicio
+1. Verificar estado en Azure Portal
+2. Revisar logs con `az webapp log tail`
+3. Reiniciar el servicio con `az webapp restart`
 4. Si persiste, redesplegar última versión estable
 
 **Si la base de datos falla:**
-1. Verificar estado de RDS en AWS Console
-2. Verificar conectividad desde EC2
-3. Esperar recuperación automática de AWS
+1. Verificar estado en panel de Clever Cloud
+2. Verificar conectividad desde local
+3. Esperar recuperación automática de Clever Cloud
 4. Si es necesario, restaurar desde backup
 
 **Si el frontend no carga:**
-1. Verificar CloudFront en AWS Console
-2. Verificar que los archivos estén en S3
-3. Invalidar caché de CloudFront
+1. Verificar estado en Netlify Dashboard
+2. Verificar que el build se completó correctamente
+3. Revisar logs de despliegue en Netlify
 4. Si es necesario, redesplegar frontend
 
 ---
@@ -452,7 +425,9 @@ DELETE FROM refresh_tokens WHERE revoked = true AND created_at < DATE_SUB(NOW(),
 - pawsoft.vet@gmail.com
 
 **Infraestructura:**
-- AWS Support (según plan contratado)
+- Azure Support (plan gratuito incluye soporte básico)
+- Clever Cloud Support (según plan contratado)
+- Netlify Support (plan gratuito incluye soporte comunitario)
 
 ---
 
@@ -477,41 +452,34 @@ Antes de cada despliegue a producción, verificar:
 
 Si el despliegue causa problemas:
 
-1. Conectarse al servidor:
+1. Identificar la versión anterior estable en el historial de despliegues de Azure
+
+2. Redesplegar versión anterior:
 ```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
+az webapp deployment source config-zip --resource-group pawsoft-rg --name pawsoft-backend --src previous-version.jar
 ```
 
-2. Detener el servicio:
-```bash
-sudo systemctl stop pawsoft-backend
-```
+3. O usar el portal de Azure:
+   - Ir a Deployment Center
+   - Seleccionar despliegue anterior
+   - Hacer rollback
 
-3. Restaurar el JAR anterior (mantener backup del JAR anterior):
-```bash
-cp /opt/pawsoft/backend.jar.backup /opt/pawsoft/backend.jar
-```
-
-4. Iniciar el servicio:
-```bash
-sudo systemctl start pawsoft-backend
-```
-
-5. Si hubo migración de base de datos, restaurar desde backup
+4. Si hubo migración de base de datos, restaurar desde backup
 
 ### 11.2 Rollback de Frontend
 
 1. Revertir el commit en Git:
 ```bash
 git revert HEAD
+git push
 ```
 
-2. Recompilar y redesplegar:
-```bash
-npm run build
-aws s3 sync dist/pawsoft s3://pawsoft-frontend --delete
-aws cloudfront create-invalidation --distribution-id [ID] --paths "/*"
-```
+2. Netlify desplegará automáticamente la versión revertida
+
+O usar el panel de Netlify:
+- Ir a Deploys
+- Seleccionar despliegue anterior
+- Hacer rollback
 
 ### 11.3 Rollback de Base de Datos
 
@@ -519,10 +487,13 @@ Si una migración causó problemas:
 
 1. Restaurar desde el backup inmediatamente anterior:
 ```bash
-mysql -h pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com -u admin -p pawsoft < /home/ec2-user/backups/pawsoft_[FECHA].sql
+mysql -h bjupuy...clever-cloud.com -u [user] -p pawsoft < backup_[FECHA].sql
 ```
 
-2. Reiniciar el backend
+2. Reiniciar el backend en Azure:
+```bash
+az webapp restart --resource-group pawsoft-rg --name pawsoft-backend
+```
 
 3. Verificar que el sistema funcione correctamente
 
@@ -530,54 +501,47 @@ mysql -h pawsoft-db.c1aa0ymogy47.us-east-2.rds.amazonaws.com -u admin -p pawsoft
 
 ## 12. Monitoreo y Alertas
 
-### 12.1 Métricas de Prometheus + Grafana
+### 12.1 Métricas de Azure Application Insights
 
-**Prometheus:** `http://3.135.224.139:9090`  
-**Grafana:** `http://3.135.224.139:3000` (requiere credenciales)
+**Azure Portal:** https://portal.azure.com  
+**Recurso:** pawsoft-backend → Application Insights
 
 **Métricas monitoreadas:**
-- Métricas de negocio (citas, usuarios, servicios)
 - `http_server_requests_seconds` - Tiempo de respuesta por endpoint
 - `jvm_memory_used_bytes` - Uso de memoria
 - `jvm_threads_live` - Threads activos
 - `http_server_requests_total` - Total de requests
+- Disponibilidad del servicio
 
-**Dashboard principal:** PawSoft Métricas de Negocio  
-**Actualización:** Cada 30 segundos
+**Dashboard:** Disponible en Azure Portal  
+**Actualización:** Tiempo real
 
 ### 12.2 Logs de Aplicación
 
 **Ver logs en tiempo real:**
 ```bash
-ssh -i pawsoft-key.pem ec2-user@3.135.224.139
-sudo journalctl -u pawsoft-backend -f
+az webapp log tail --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 **Ver logs de las últimas 24 horas:**
 ```bash
-sudo journalctl -u pawsoft-backend --since "24 hours ago"
+az webapp log download --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 **Filtrar solo errores:**
-```bash
-sudo journalctl -u pawsoft-backend -p err --since "24 hours ago"
-```
+Usar Azure Portal → App Services → Log stream → Filtrar por nivel ERROR
 
 ### 12.3 Verificación de Backups
 
-**Verificar que el cron esté ejecutándose:**
-```bash
-crontab -l
-```
+**Verificar backups en Clever Cloud:**
+- Acceder al panel de Clever Cloud
+- Ir a la sección de la base de datos
+- Ver historial de backups automáticos
 
-**Ver últimas ejecuciones del backup:**
+**Verificar backups manuales locales (si configurados):**
 ```bash
-tail -50 /home/ec2-user/backups/backup.log
-```
-
-**Verificar que los archivos SQL se estén generando:**
-```bash
-ls -lh /home/ec2-user/backups/*.sql
+ls -lh ./backups/*.sql
+tail -50 ./backups/backup.log
 ```
 
 ---
@@ -596,7 +560,7 @@ ls -lh /home/ec2-user/backups/*.sql
 
 **Solución:**
 ```bash
-sudo journalctl -u pawsoft-backend -n 100
+az webapp log tail --resource-group pawsoft-rg --name pawsoft-backend
 ```
 
 Revisar el error específico y corregir la configuración o código.
@@ -612,7 +576,7 @@ Revisar el error específico y corregir la configuración o código.
 
 **Solución:**
 1. Verificar que el interceptor de refresh token esté funcionando
-2. Revisar logs del backend para ver el error específico
+2. Revisar logs del backend en Azure con `az webapp log tail`
 3. Verificar configuración de CORS en `CorsConfig.java`
 
 ### 13.3 Base de datos lenta
@@ -625,25 +589,25 @@ Revisar el error específico y corregir la configuración o código.
 - Conexiones no cerradas
 
 **Solución:**
-1. Revisar métricas de RDS en AWS Console
-2. Analizar queries lentas con `EXPLAIN`
-3. Agregar índices si es necesario
-4. Optimizar consultas JPA
+1. Revisar métricas en Azure Application Insights
+2. Revisar métricas de Clever Cloud para la base de datos
+3. Analizar queries lentas con `EXPLAIN`
+4. Agregar índices si es necesario
+5. Optimizar consultas JPA
 
-### 13.4 Espacio en disco lleno
+### 13.4 Límites del Plan Gratuito
 
-**Síntomas:** Backups fallan o aplicación no puede escribir logs.
+**Síntomas:** La aplicación deja de responder o se detiene.
+
+**Posibles causas:**
+- Azure App Service: Límite de 60 minutos de CPU por día en plan gratuito
+- Clever Cloud: Límite de conexiones simultáneas
+- Netlify: Límite de ancho de banda mensual
 
 **Solución:**
-```bash
-df -h
-du -sh /home/ec2-user/backups/*
-```
-
-Eliminar backups antiguos manualmente si es necesario:
-```bash
-find /home/ec2-user/backups -name "*.sql" -mtime +7 -delete
-```
+1. Verificar uso de recursos en los paneles de cada servicio
+2. Considerar upgrade a plan de pago si se exceden límites
+3. Optimizar código para reducir uso de recursos
 
 ---
 
@@ -759,7 +723,7 @@ sudo journalctl -u pawsoft-backend --since "30 days ago"
 
 ### 16.5 Métricas de Estabilidad
 
-**Grafana Dashboard:** `http://3.135.224.139:3000`
+**Azure Application Insights:** https://portal.azure.com
 
 Visualización de:
 - Uptime del sistema
