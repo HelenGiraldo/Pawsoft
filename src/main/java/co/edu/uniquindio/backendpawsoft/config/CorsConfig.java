@@ -32,6 +32,7 @@ public class CorsConfig {
         config.setAllowedOrigins(Arrays.asList(
             "https://pawsoft.online",
             "https://www.pawsoft.online",
+            "https://icy-dune-0d82b770f.2.azurestaticapps.net",
             "http://localhost:4200",
             "http://localhost:8100"
         ));
