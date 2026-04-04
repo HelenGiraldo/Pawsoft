@@ -44,7 +44,7 @@ app.log
 # docs/ — se versiona para incluir modelo de BD y arquitectura
 
 ### Configuration with sensitive data ###
-src/main/resources/application.properties.local
+src/main/resources/application.properties
 src/main/resources/application-*.properties
 !src/main/resources/application-test.properties
 *.env

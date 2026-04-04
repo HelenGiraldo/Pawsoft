@@ -3,6 +3,7 @@ package co.edu.uniquindio.backendpawsoft.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,9 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    
+    @Value("${app.backend.url:http://localhost:8080}")
+    private String backendUrl;
 
     // ── Plantilla base HTML ──────────────────────────────────────────────────
     private String wrapTemplate(String contenido) {
@@ -98,7 +102,7 @@ public class EmailService {
 
     // ── Verificación de cuenta ───────────────────────────────────────────────
     public void sendVerificationEmail(String to, String token) {
-        String link = "https://api.pawsoft.online/auth/verify-email?token=" + token;
+        String link = backendUrl + "/auth/verify-email?token=" + token;
 
         String contenido = """
             <h2 style="color:#2d6a4f;margin:0 0 12px;">¡Bienvenido a PawSoft! 🎉</h2>
