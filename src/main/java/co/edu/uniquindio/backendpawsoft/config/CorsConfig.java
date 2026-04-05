@@ -34,7 +34,8 @@ public class CorsConfig {
             "https://www.pawsoft.online",
             "https://icy-dune-0d82b770f.2.azurestaticapps.net",
             "http://localhost:4200",
-            "http://localhost:8100"
+            "http://localhost:8100",
+                "https://d62s9ba36azh1.cloudfront.net"
         ));
         
         config.setAllowedHeaders(Arrays.asList("*"));

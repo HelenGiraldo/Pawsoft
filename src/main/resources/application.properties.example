@@ -24,17 +24,17 @@ spring.jpa.show-sql=false
 # Email Configuration (Gmail SMTP)
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
-spring.mail.username=YOUR_EMAIL@gmail.com
+spring.mail.username=helenx.giraldol@uqvirtual.edu.co
 spring.mail.password=YOUR_APP_PASSWORD
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 
 # Application URLs
-app.frontend.url=https://your-frontend-url.com
-app.backend.url=http://localhost:8080
+app.frontend.url=https://d62s9ba36azh1.cloudfront.net
+app.backend.url=https://api.pawsoft.online
 
 # Admin Initial Credentials
-app.admin.email=admin@example.com
+app.admin.email=helenx.giraldol@uqvirtual.edu.co
 app.admin.password=ChangeThisPassword123!
 
 # reCAPTCHA Configuration
