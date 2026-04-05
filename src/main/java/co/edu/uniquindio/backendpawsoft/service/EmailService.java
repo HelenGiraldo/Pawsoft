@@ -28,8 +28,8 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     
-    @Value("${app.backend.url:http://localhost:8080}")
-    private String backendUrl;
+    @Value("${app.frontend.url:https://www.pawsoft.online}")
+    private String frontendUrl;
 
     // ── Plantilla base HTML ──────────────────────────────────────────────────
     private String wrapTemplate(String contenido) {
@@ -102,7 +102,7 @@ public class EmailService {
 
     // ── Verificación de cuenta ───────────────────────────────────────────────
     public void sendVerificationEmail(String to, String token) {
-        String link = backendUrl + "/auth/verify-email?token=" + token;
+        String link = frontendUrl + "/auth/verify-email?token=" + token;
 
         String contenido = """
             <h2 style="color:#2d6a4f;margin:0 0 12px;">¡Bienvenido a PawSoft! 🎉</h2>
