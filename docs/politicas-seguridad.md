@@ -114,29 +114,33 @@ Esta política se aplica en: registro, recuperación de contraseña, cambio de c
 
 ## 8. Copias de seguridad y recuperación
 
-**Estado actual:** backup automático diario configurado y funcionando en el servidor EC2 mediante `mysqldump` + `cron`.
+**Proveedor de base de datos:** Clever Cloud MySQL
 
-**Script de backup** (`/home/ec2-user/backup-db.sh`):
+**Política de backups:**
+
+Clever Cloud proporciona backups automáticos de la base de datos MySQL con las siguientes características:
+
+- **Backups automáticos diarios**: Clever Cloud realiza snapshots automáticos de la base de datos todos los días.
+- **Retención**: Los backups se conservan según el plan contratado (mínimo 7 días en planes estándar).
+- **Restauración**: Los backups pueden restaurarse desde el panel de control de Clever Cloud en caso de pérdida de datos o corrupción.
+- **Punto de recuperación**: Los backups permiten restaurar la base de datos a un punto específico en el tiempo.
+- **Almacenamiento**: Los backups se almacenan de forma segura en la infraestructura de Clever Cloud, separada de la base de datos principal.
+
+**Acceso a backups:**
+- Panel de control: https://console.clever-cloud.com
+- Sección: Add-ons → MySQL → Backups
+- Permite descargar backups manualmente o restaurar directamente desde la consola
+
+**Backup manual adicional (opcional):**
+
+Para backups adicionales fuera de Clever Cloud, se puede ejecutar manualmente:
+
 ```bash
-#!/bin/bash
-FECHA=$(date +%Y%m%d_%H%M%S)
-ARCHIVO="/home/ec2-user/backups/pawsoft_$FECHA.sql"
-mysqldump -h <host-rds> -u admin -p<password> pawsoft > "$ARCHIVO"
-find /home/ec2-user/backups -name "*.sql" -mtime +7 -delete
-echo "Backup completado: $ARCHIVO"
+mysqldump -h bjupuy1qf02vfh4qhccj-mysql.services.clever-cloud.com \
+  -u uqwbpgmxwosuzwg3 -p bjupuy1qf02vfh4qhccj > backup_$(date +%Y%m%d).sql
 ```
 
-**Cron configurado** (todos los días a las 2:00 AM UTC):
-```
-0 2 * * * /home/ec2-user/backup-db.sh >> /home/ec2-user/backups/backup.log 2>&1
-```
-
-**Política:**
-- Frecuencia: diaria automática.
-- Retención: 7 días (los backups más antiguos se eliminan automáticamente).
-- Almacenamiento: directorio `/home/ec2-user/backups/` en EC2.
-- Log de ejecución: `/home/ec2-user/backups/backup.log` registra cada ejecución del cron con timestamp y resultado (éxito o error).
-- Monitoreo: el log permite verificar que el backup automático funciona correctamente sin necesidad de conectarse al servidor.
+**Nota de seguridad:** Las credenciales de la base de datos están protegidas en variables de entorno y no se almacenan en el repositorio.
 
 ---
 
@@ -173,6 +177,6 @@ Cada registro incluye: acción, descripción, entidad afectada, ID de la entidad
 | Prevención de vulnerabilidades | ✅ Cumple — fuerza bruta, bots, CORS, inyección SQL |
 | Contraseñas seguras y cifrado | ✅ Cumple — política de contraseñas + BCrypt + HTTPS |
 | Protección de la conexión | ✅ Cumple — HTTPS en frontend y backend con certificados SSL |
-| Copias de seguridad | ✅ Cumple — backup automático diario con cron en EC2 |
+| Copias de seguridad | ✅ Cumple — backups automáticos diarios gestionados por Clever Cloud |
 | Auditoría de eventos | ✅ Cumple — tabla `audit_log` con acciones críticas |
 | Políticas documentadas | ✅ Cumple — este documento |
