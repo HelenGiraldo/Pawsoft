@@ -44,6 +44,7 @@ public record MedicalRecordResponse(
         Double peso,
         Double temperatura,
         Integer frecuenciaCardiaca,
+        Integer frecuenciaRespiratoria,
         String observacionesGenerales,
 
         // Diagnóstico

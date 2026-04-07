@@ -46,6 +46,7 @@ public class MedicalRecord {
     private Double peso;
     private Double temperatura;
     private Integer frecuenciaCardiaca;
+    private Integer frecuenciaRespiratoria;
 
     @Column(length = 1000)
     private String observacionesGenerales;

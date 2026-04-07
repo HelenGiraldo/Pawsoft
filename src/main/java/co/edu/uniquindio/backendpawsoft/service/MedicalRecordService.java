@@ -49,9 +49,9 @@ public class MedicalRecordService {
         Appointment appointment = appointmentRepository.findById(request.appointmentId())
                 .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
 
-        // Validar que la cita esté en progreso si se intenta cerrar
-        if (cerrar && appointment.getStatus() != AppointmentStatus.IN_PROGRESS) {
-            throw new RuntimeException("Solo se pueden cerrar citas que estén en progreso");
+        // Validar que la cita esté CONFIRMED si se intenta cerrar
+        if (cerrar && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
+            throw new RuntimeException("Solo se pueden cerrar citas que estén confirmadas");
         }
 
         // Crear o actualizar
@@ -66,6 +66,7 @@ public class MedicalRecordService {
         record.setPeso(request.peso());
         record.setTemperatura(request.temperatura());
         record.setFrecuenciaCardiaca(request.frecuenciaCardiaca());
+        record.setFrecuenciaRespiratoria(request.frecuenciaRespiratoria());
         record.setObservacionesGenerales(request.observacionesGenerales());
         record.setDiagnosticoPrincipal(request.diagnosticoPrincipal());
         record.setDiagnosticoSecundario(request.diagnosticoSecundario());
@@ -118,6 +119,44 @@ public class MedicalRecordService {
         return mapToResponse(record);
     }
 
+    /**
+     * Obtiene todos los registros médicos del cliente autenticado.
+     * Solo retorna registros de citas COMPLETED.
+     */
+    public List<MedicalRecordResponse> getByCliente(String clientEmail) {
+        User client = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new NotFoundException("Cliente no encontrado"));
+
+        return medicalRecordRepository.findAll()
+                .stream()
+                .filter(r -> r.getAppointment().getClient() != null
+                        && r.getAppointment().getClient().getId().equals(client.getId())
+                        && r.getAppointment().getStatus() == AppointmentStatus.COMPLETED)
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /**
+     * Obtiene el resumen médico de una cita para el cliente autenticado.
+     * Valida que la cita pertenezca al cliente antes de retornar el registro.
+     */
+    public MedicalRecordResponse getResumenParaCliente(Long appointmentId, String clientEmail) {
+        User client = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new NotFoundException("Cliente no encontrado"));
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
+
+        if (!appointment.getClient().getId().equals(client.getId())) {
+            throw new RuntimeException("No tiene permisos para ver este registro");
+        }
+
+        MedicalRecord record = medicalRecordRepository.findByAppointmentId(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Registro médico no encontrado"));
+
+        return mapToResponse(record);
+    }
+
     private MedicalRecordResponse mapToResponse(MedicalRecord r) {
         Appointment a = r.getAppointment();
         return new MedicalRecordResponse(
@@ -140,6 +179,7 @@ public class MedicalRecordService {
                 r.getPeso(),
                 r.getTemperatura(),
                 r.getFrecuenciaCardiaca(),
+                r.getFrecuenciaRespiratoria(),
                 r.getObservacionesGenerales(),
                 r.getDiagnosticoPrincipal(),
                 r.getDiagnosticoSecundario(),
