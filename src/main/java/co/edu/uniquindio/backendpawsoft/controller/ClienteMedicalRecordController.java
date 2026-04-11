@@ -34,7 +34,7 @@ public class ClienteMedicalRecordController {
     @GetMapping
     public ResponseEntity<List<MedicalRecordResponse>> getMisRegistros(Authentication authentication) {
         return ResponseEntity.ok(
-            medicalRecordService.getByCliente(authentication.getName())
+                medicalRecordService.getByCliente(authentication.getName())
         );
     }
 
@@ -47,7 +47,7 @@ public class ClienteMedicalRecordController {
             @PathVariable Long appointmentId,
             Authentication authentication) {
         return ResponseEntity.ok(
-            medicalRecordService.getResumenParaCliente(appointmentId, authentication.getName())
+                medicalRecordService.getResumenParaCliente(appointmentId, authentication.getName())
         );
     }
 }
