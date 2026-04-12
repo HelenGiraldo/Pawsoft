@@ -176,10 +176,14 @@ public class SecurityConfig {
                         // ── Veterinario ──────────────────────────────────────────────
                         .requestMatchers("/api/veterinario/**")
                         .hasAuthority("ROLE_VETERINARIO")
+                        .requestMatchers("/api/vet/medical-records/appointment/**")
+                        .hasAnyAuthority("ROLE_VETERINARIO", "ROLE_RECEPCIONISTA", "ROLE_ADMIN")
                         .requestMatchers("/api/vet/**")
                         .hasAuthority("ROLE_VETERINARIO")
 
                         // ── Cliente ──────────────────────────────────────────────────
+                        .requestMatchers("/api/cliente/medical-records/**")
+                        .hasAnyAuthority("ROLE_CLIENTE", "ROLE_RECEPCIONISTA", "ROLE_ADMIN")
                         .requestMatchers("/api/cliente/**")
                         .hasAuthority("ROLE_CLIENTE")
 

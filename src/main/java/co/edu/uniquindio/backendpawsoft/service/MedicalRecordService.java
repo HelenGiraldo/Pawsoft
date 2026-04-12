@@ -10,10 +10,12 @@ import co.edu.uniquindio.backendpawsoft.model.MedicalRecord;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.AppointmentRepository;
 import co.edu.uniquindio.backendpawsoft.repository.MedicalRecordRepository;
+import co.edu.uniquindio.backendpawsoft.repository.ServicePriceRepository;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -30,6 +32,7 @@ public class MedicalRecordService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final ServicePriceRepository servicePriceRepository;
 
     /**
      * Crea o actualiza el registro médico de una cita.
@@ -80,6 +83,16 @@ public class MedicalRecordService {
         record.setProximoControlFecha(request.proximoControlFecha());
         record.setProximoControlMotivo(request.proximoControlMotivo());
         record.setFotosAdjuntas(request.fotosAdjuntas());
+
+        // Persistir costos: el costo de medicamentos viene del frontend,
+        // el precio base del servicio se consulta directamente desde la BD
+        BigDecimal costoMeds = request.costoMedicamentos() != null ? request.costoMedicamentos() : BigDecimal.ZERO;
+        BigDecimal precioServicio = servicePriceRepository
+                .findByServiceType(appointment.getReason())
+                .map(sp -> sp.getPrice())
+                .orElse(BigDecimal.ZERO);
+        record.setCostoMedicamentos(costoMeds);
+        record.setCostoTotal(precioServicio.add(costoMeds));
 
         if (cerrar) {
             appointment.setStatus(AppointmentStatus.COMPLETED);
@@ -193,6 +206,10 @@ public class MedicalRecordService {
                 r.getProximoControlFecha(),
                 r.getProximoControlMotivo(),
                 r.getFotosAdjuntas(),
+                r.getCostoMedicamentos(),
+                r.getCostoTotal(),
+                servicePriceRepository.findByServiceType(a.getReason())
+                        .map(sp -> sp.getPrice()).orElse(BigDecimal.ZERO),
                 r.getCreadoEn(),
                 r.getActualizadoEn()
         );

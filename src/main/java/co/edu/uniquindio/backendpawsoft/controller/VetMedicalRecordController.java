@@ -2,6 +2,8 @@ package co.edu.uniquindio.backendpawsoft.controller;
 
 import co.edu.uniquindio.backendpawsoft.dto.MedicalRecordRequest;
 import co.edu.uniquindio.backendpawsoft.dto.MedicalRecordResponse;
+import co.edu.uniquindio.backendpawsoft.dto.MedicationCatalogResponse;
+import co.edu.uniquindio.backendpawsoft.service.CatalogService;
 import co.edu.uniquindio.backendpawsoft.service.MedicalRecordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ import java.util.List;
 public class VetMedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
+    private final CatalogService catalogService;
 
     /**
      * Guarda el registro médico (borrador o cierre de atención).
@@ -69,5 +72,16 @@ public class VetMedicalRecordController {
     public ResponseEntity<MedicalRecordResponse> getByAppointment(
             @PathVariable Long appointmentId) {
         return ResponseEntity.ok(medicalRecordService.getByAppointment(appointmentId));
+    }
+
+    /**
+     * Retorna el catálogo de medicamentos activos con sus precios.
+     * El vet lo usa para seleccionar medicamentos con precio en el formulario.
+     *
+     * GET /api/vet/medical-records/medications
+     */
+    @GetMapping("/medications")
+    public ResponseEntity<List<MedicationCatalogResponse>> getMedications() {
+        return ResponseEntity.ok(catalogService.getActiveMedications());
     }
 }

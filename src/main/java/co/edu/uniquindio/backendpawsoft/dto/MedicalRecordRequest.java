@@ -2,6 +2,7 @@ package co.edu.uniquindio.backendpawsoft.dto;
 
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -41,5 +42,9 @@ public record MedicalRecordRequest(
         String proximoControlMotivo,
 
         // Archivos adjuntos
-        String fotosAdjuntas       // JSON string de URLs de fotos (radiografías, etc.)
+        String fotosAdjuntas,       // JSON string de URLs de fotos (radiografías, etc.)
+
+        // Costos calculados por el frontend
+        BigDecimal costoMedicamentos,
+        BigDecimal costoTotal
 ) {}

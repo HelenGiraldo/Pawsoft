@@ -2,6 +2,7 @@ package co.edu.uniquindio.backendpawsoft.dto;
 
 import co.edu.uniquindio.backendpawsoft.enums.AppointmentStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -68,6 +69,11 @@ public record MedicalRecordResponse(
 
         // Archivos adjuntos
         String fotosAdjuntas,
+
+        // Costos
+        BigDecimal costoMedicamentos,
+        BigDecimal costoTotal,
+        BigDecimal precioServicioBase,
 
         // Auditoría
         LocalDateTime creadoEn,

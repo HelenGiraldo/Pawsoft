@@ -3,6 +3,7 @@ package co.edu.uniquindio.backendpawsoft.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -95,6 +96,15 @@ public class MedicalRecord {
     /** JSON serializado de URLs de fotos (radiografías, análisis, etc.) subidas a Cloudinary. */
     @Column(columnDefinition = "TEXT")
     private String fotosAdjuntas;
+
+    // ── Costos ─────────────────────────────────────────────────────────────
+    /** Costo total de los medicamentos aplicados en consulta. */
+    @Column(name = "costo_medicamentos", precision = 12, scale = 2)
+    private BigDecimal costoMedicamentos;
+
+    /** Precio base del servicio + costo de medicamentos. */
+    @Column(name = "costo_total", precision = 12, scale = 2)
+    private BigDecimal costoTotal;
 
     // ── Auditoría ──────────────────────────────────────────────────────────
     @Column(nullable = false)
