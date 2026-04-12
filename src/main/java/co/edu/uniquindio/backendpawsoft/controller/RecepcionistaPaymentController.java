@@ -1,8 +1,7 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
-import co.edu.uniquindio.backendpawsoft.dto.PaymentRequest;
-import co.edu.uniquindio.backendpawsoft.dto.PaymentResponse;
-import co.edu.uniquindio.backendpawsoft.dto.ServicePriceResponse;
+import co.edu.uniquindio.backendpawsoft.dto.*;
+import co.edu.uniquindio.backendpawsoft.service.CatalogService;
 import co.edu.uniquindio.backendpawsoft.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +40,7 @@ import java.util.List;
 public class RecepcionistaPaymentController {
 
     private final PaymentService paymentService;
+    private final CatalogService catalogService;
 
     /**
      * Lista los servicios activos con su precio base.
@@ -109,5 +109,37 @@ public class RecepcionistaPaymentController {
     @GetMapping
     public ResponseEntity<List<PaymentResponse>> getAllPayments() {
         return ResponseEntity.ok(paymentService.getAllPayments());
+    }
+
+    /**
+     * Ajusta el monto de un pago con auditoría.
+     * PUT /api/recepcionista/payments/{id}/adjust
+     */
+    @PutMapping("/{id}/adjust")
+    public ResponseEntity<PaymentResponse> adjustPayment(
+            @PathVariable Long id,
+            @Valid @RequestBody PaymentAdjustmentRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        String adjustedBy = currentUser != null ? currentUser.getUsername() : "sistema";
+        return ResponseEntity.ok(paymentService.adjustPaymentAmount(id, request, adjustedBy));
+    }
+
+    /**
+     * Lista medicamentos activos del catálogo.
+     * GET /api/recepcionista/payments/medications
+     */
+    @GetMapping("/medications")
+    public ResponseEntity<List<MedicationCatalogResponse>> getActiveMedications() {
+        return ResponseEntity.ok(catalogService.getActiveMedications());
+    }
+
+    /**
+     * Lista vacunas activas del catálogo.
+     * GET /api/recepcionista/payments/vaccines
+     */
+    @GetMapping("/vaccines")
+    public ResponseEntity<List<VaccineCatalogResponse>> getActiveVaccines() {
+        return ResponseEntity.ok(catalogService.getActiveVaccines());
     }
 }

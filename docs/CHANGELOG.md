@@ -4,6 +4,174 @@ Registro de cambios, correcciones y mejoras del sistema.
 
 ---
 
+## [2026-04-11] - 11 de abril de 2026
+
+### Nuevas Funcionalidades
+
+#### Sistema de Precios para Medicamentos y Vacunas con Ajustes de Pago
+**Tipo:** Mantenimiento Evolutivo  
+**Funcionalidad:** Sistema completo de facturación detallada para medicamentos y vacunas aplicados durante procedimientos, con capacidad de ajuste de montos y auditoría completa.
+
+**Implementación:**
+
+**Catálogos de Precios:**
+- Nuevo catálogo de medicamentos (`medication_catalog`) con precio unitario y unidad de medida
+- Nuevo catálogo de vacunas (`vaccine_catalog`) con precio por dosis
+- Gestión completa CRUD por administrador
+- Filtrado de ítems activos/inactivos
+
+**Facturación Detallada:**
+- Nueva tabla `payment_items` para desglose de cobros
+- Tipos de ítems: SERVICE (servicios), MEDICATION (medicamentos), VACCINE (vacunas)
+- Cálculo automático de subtotales (cantidad × precio unitario)
+- Monto total del pago = suma de todos los ítems
+
+**Sistema de Ajustes con Auditoría:**
+- Nueva tabla `payment_adjustments` para registro de modificaciones de monto
+- Campos obligatorios: motivo del ajuste (mínimo 10 caracteres)
+- Auditoría automática: quién ajustó (email y nombre), cuándo, monto original, monto ajustado, diferencia
+- Historial completo de ajustes visible para administrador
+- Solo recepcionistas pueden ajustar montos
+
+**Endpoints Nuevos:**
+
+Recepcionista:
+- `GET /api/recepcionista/payments/medications` - Lista medicamentos activos
+- `GET /api/recepcionista/payments/vaccines` - Lista vacunas activas
+- `PUT /api/recepcionista/payments/{id}/adjust` - Ajusta monto de pago con motivo
+
+Administrador:
+- `GET /api/admin/payments/medications` - Lista todos los medicamentos
+- `POST /api/admin/payments/medications` - Crea/actualiza medicamento
+- `DELETE /api/admin/payments/medications/{id}` - Elimina medicamento
+- `GET /api/admin/payments/vaccines` - Lista todas las vacunas
+- `POST /api/admin/payments/vaccines` - Crea/actualiza vacuna
+- `DELETE /api/admin/payments/vaccines/{id}` - Elimina vacuna
+
+**Seguridad:**
+- Validación de monto mínimo (no negativo)
+- Validación de motivo de ajuste (10-500 caracteres)
+- Registro en audit_log de todas las operaciones
+- Nombre de recepcionista extraído del JWT token
+
+**Archivos creados:**
+- Backend Models: `MedicationCatalog.java`, `VaccineCatalog.java`, `PaymentItem.java`, `PaymentAdjustment.java`
+- Backend Repositories: `MedicationCatalogRepository.java`, `VaccineCatalogRepository.java`, `PaymentItemRepository.java`, `PaymentAdjustmentRepository.java`
+- Backend Services: `CatalogService.java`
+- Backend DTOs: `MedicationCatalogRequest.java`, `MedicationCatalogResponse.java`, `VaccineCatalogRequest.java`, `VaccineCatalogResponse.java`, `PaymentItemRequest.java`, `PaymentItemResponse.java`, `PaymentAdjustmentRequest.java`, `PaymentAdjustmentResponse.java`
+
+**Archivos modificados:**
+- Backend: `Payment.java`, `PaymentRequest.java`, `PaymentResponse.java`, `PaymentService.java`, `RecepcionistaPaymentController.java`, `AdminPaymentController.java`
+
+**Comportamiento preservado:**
+- Sistema de pagos existente sigue funcionando
+- Instantánea de datos de cita en pagos
+- Estadísticas de ingresos
+- Validaciones de unicidad (un pago por cita)
+
+**Migración de BD requerida:**
+```sql
+CREATE TABLE medication_catalog (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    price DECIMAL(12,2) NOT NULL,
+    unit VARCHAR(50),
+    active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE vaccine_catalog (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    price DECIMAL(12,2) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE payment_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    payment_id BIGINT NOT NULL,
+    item_type VARCHAR(20) NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    quantity DECIMAL(10,2) NOT NULL,
+    unit VARCHAR(50),
+    unit_price DECIMAL(12,2) NOT NULL,
+    subtotal DECIMAL(12,2) NOT NULL,
+    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+);
+
+CREATE TABLE payment_adjustments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    payment_id BIGINT NOT NULL,
+    original_amount DECIMAL(12,2) NOT NULL,
+    adjusted_amount DECIMAL(12,2) NOT NULL,
+    difference DECIMAL(12,2) NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+    adjusted_by VARCHAR(120) NOT NULL,
+    adjusted_by_name VARCHAR(120) NOT NULL,
+    adjusted_at DATETIME NOT NULL,
+    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### Control de Acceso Basado en Roles (RBAC) para Chatbot
+**Tipo:** Mantenimiento Evolutivo  
+**Funcionalidad:** El chatbot PawBot ahora adapta sus respuestas según el rol del usuario autenticado, protegiendo información sensible y funcionalidades restringidas.
+
+**Implementación:**
+- Nuevo servicio `SystemPromptGenerator` que genera prompts dinámicos por rol
+- System prompts específicos para cada rol:
+  - ROLE_ADMIN: Acceso completo a todas las funcionalidades
+  - ROLE_VETERINARIO: Acceso a funciones médicas (diagnósticos, historiales clínicos, gestión de citas)
+  - ROLE_RECEPCIONISTA: Acceso a gestión de citas, pagos y registro de clientes
+  - ROLE_CLIENTE: Acceso limitado (agendar citas propias, ver mascotas, realizar pagos)
+- Extracción segura del rol desde JWT token en el backend
+- Validación de autenticación en cada solicitud al chatbot
+- Logging de auditoría con información del rol del usuario
+- Límite de historial de conversación a 10 mensajes para optimizar rendimiento
+
+**Seguridad:**
+- El rol se extrae exclusivamente del JWT token (nunca desde el frontend)
+- Chatbot requiere autenticación (cambio de `permitAll()` a `authenticated()`)
+- Respuestas educadas cuando se solicita información fuera del alcance del rol
+- Caché de prompts en memoria para optimizar rendimiento
+
+**Archivos modificados:**
+- Backend: `SystemPromptGenerator.java` (nuevo), `ChatbotController.java`, `SecurityConfig.java`
+
+**Comportamiento preservado:**
+- Funcionalidades de accesibilidad disponibles para todos los roles
+- Información de contacto y soporte disponible para todos
+- Tono amigable y profesional del chatbot
+
+---
+
+### Correcciones
+
+#### Fix: Mensaje de Error en Cambio de Contraseña sin Login
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Cuando un usuario cambiaba su contraseña por primera vez y luego intentaba cambiarla nuevamente sin haber iniciado sesión con la nueva contraseña, el sistema mostraba un mensaje genérico "El usuario ya ha cambiado la contraseña" que no explicaba qué debía hacer el usuario.
+
+**Solución:**
+- Actualizado mensaje de error a: "No puedes cambiar la contraseña porque ya se solicitó un cambio anteriormente y aún no has iniciado sesión con la nueva contraseña"
+- El mensaje ahora proporciona información accionable al usuario
+- Mejora la experiencia de usuario al explicar claramente el requisito de iniciar sesión
+
+**Archivos modificados:**
+- `backendPawsoft/src/main/java/co/edu/uniquindio/backendpawsoft/service/AuthService.java`
+
+**Comportamiento preservado:**
+- Primer cambio de contraseña exitoso (primerAcceso = true → false)
+- Validaciones de seguridad de contraseña (mínimo 8 caracteres, mayúscula, número, carácter especial)
+- Validación que previene usar la misma contraseña temporal
+- Manejo de usuarios no encontrados (NotFoundException)
+- Generación de tokens JWT y refresh tokens
+
+---
+
 ## [2026-03-31] - 31 de marzo de 2026
 
 ### Documentación

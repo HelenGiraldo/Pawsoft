@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -46,4 +47,10 @@ public class PaymentResponse {
     private String        receivedBy;
     private String        notes;
     private LocalDateTime createdAt;
+
+    /** Ítems detallados del pago */
+    private List<PaymentItemResponse> items;
+
+    /** Historial de ajustes */
+    private List<PaymentAdjustmentResponse> adjustments;
 }

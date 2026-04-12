@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * DTO que representa el cuerpo de la petición para registrar un pago.
@@ -66,4 +67,7 @@ public class PaymentRequest {
     private BigDecimal amount;
 
     private String notes;
+
+    /** Ítems detallados del pago (servicios, medicamentos, vacunas) */
+    private List<PaymentItemRequest> items;
 }

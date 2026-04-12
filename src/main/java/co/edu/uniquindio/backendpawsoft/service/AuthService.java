@@ -260,7 +260,7 @@ public class AuthService {
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         if (!user.isPrimerAcceso()) {
-            throw new UnauthorizedException("El usuario ya ha cambiado la contraseña");
+            throw new UnauthorizedException("No puedes cambiar la contraseña porque ya se solicitó un cambio anteriormente y aún no has iniciado sesión con la nueva contraseña");
         }
 
         if (!isPasswordStrong(newPassword)) {

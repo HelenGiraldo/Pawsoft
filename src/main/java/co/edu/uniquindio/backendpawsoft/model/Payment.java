@@ -125,4 +125,14 @@ public class Payment {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Ítems detallados del pago (servicios, medicamentos, vacunas) */
+    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<PaymentItem> items = new java.util.ArrayList<>();
+
+    /** Historial de ajustes manuales al monto */
+    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<PaymentAdjustment> adjustments = new java.util.ArrayList<>();
 }

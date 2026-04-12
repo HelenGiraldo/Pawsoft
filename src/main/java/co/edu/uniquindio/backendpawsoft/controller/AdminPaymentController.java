@@ -1,6 +1,7 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
 import co.edu.uniquindio.backendpawsoft.dto.*;
+import co.edu.uniquindio.backendpawsoft.service.CatalogService;
 import co.edu.uniquindio.backendpawsoft.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ import java.util.List;
 public class AdminPaymentController {
 
     private final PaymentService paymentService;
+    private final CatalogService catalogService;
 
     /* ════════════════════════════════════════════════════════════
        PAGOS
@@ -109,6 +111,72 @@ public class AdminPaymentController {
     @DeleteMapping("/prices/{id}")
     public ResponseEntity<Void> deletePrice(@PathVariable Long id) {
         paymentService.deletePrice(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       CATÁLOGO DE MEDICAMENTOS
+    ════════════════════════════════════════════════════════════ */
+
+    /**
+     * Lista todos los medicamentos del catálogo.
+     * GET /api/admin/payments/medications
+     */
+    @GetMapping("/medications")
+    public ResponseEntity<List<MedicationCatalogResponse>> getAllMedications() {
+        return ResponseEntity.ok(catalogService.getAllMedications());
+    }
+
+    /**
+     * Crea o actualiza un medicamento en el catálogo.
+     * POST /api/admin/payments/medications
+     */
+    @PostMapping("/medications")
+    public ResponseEntity<MedicationCatalogResponse> upsertMedication(
+            @Valid @RequestBody MedicationCatalogRequest request) {
+        return ResponseEntity.ok(catalogService.createOrUpdateMedication(request));
+    }
+
+    /**
+     * Elimina un medicamento del catálogo.
+     * DELETE /api/admin/payments/medications/{id}
+     */
+    @DeleteMapping("/medications/{id}")
+    public ResponseEntity<Void> deleteMedication(@PathVariable Long id) {
+        catalogService.deleteMedication(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       CATÁLOGO DE VACUNAS
+    ════════════════════════════════════════════════════════════ */
+
+    /**
+     * Lista todas las vacunas del catálogo.
+     * GET /api/admin/payments/vaccines
+     */
+    @GetMapping("/vaccines")
+    public ResponseEntity<List<VaccineCatalogResponse>> getAllVaccines() {
+        return ResponseEntity.ok(catalogService.getAllVaccines());
+    }
+
+    /**
+     * Crea o actualiza una vacuna en el catálogo.
+     * POST /api/admin/payments/vaccines
+     */
+    @PostMapping("/vaccines")
+    public ResponseEntity<VaccineCatalogResponse> upsertVaccine(
+            @Valid @RequestBody VaccineCatalogRequest request) {
+        return ResponseEntity.ok(catalogService.createOrUpdateVaccine(request));
+    }
+
+    /**
+     * Elimina una vacuna del catálogo.
+     * DELETE /api/admin/payments/vaccines/{id}
+     */
+    @DeleteMapping("/vaccines/{id}")
+    public ResponseEntity<Void> deleteVaccine(@PathVariable Long id) {
+        catalogService.deleteVaccine(id);
         return ResponseEntity.noContent().build();
     }
 }

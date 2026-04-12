@@ -16,7 +16,10 @@ Base de datos relacional MySQL gestionada con Spring Data JPA / Hibernate.
 - `users` → `email_verification_token` mediante `user_id`
 - `users` → `password_reset_tokens` mediante `user_id`
 - `users` → `refresh_tokens` mediante `user_email`
+- `payments` → `payment_items` mediante `payment_id` (cascada: eliminar pago elimina sus ítems)
+- `payments` → `payment_adjustments` mediante `payment_id` (cascada: eliminar pago elimina sus ajustes)
 - `service_prices` no tiene FK directa; su campo `service_type` coincide por valor con el campo `reason` de `appointments`
+- `medication_catalog` y `vaccine_catalog` no tienen FK directas; se referencian por nombre en `payment_items`
 
 ---
 
@@ -112,6 +115,67 @@ Precios base por tipo de servicio, gestionados por el administrador.
 | `price` | DECIMAL(12,2) | Precio base en COP |
 | `description` | VARCHAR(255) | Descripción opcional |
 | `active` | BOOLEAN | Si `false`, no aparece en el wizard de cobros |
+
+---
+
+### `medication_catalog`
+Catálogo de medicamentos con precios, gestionado por el administrador.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `name` | VARCHAR(100) UK | Nombre del medicamento (único) |
+| `description` | VARCHAR(255) | Descripción opcional |
+| `price` | DECIMAL(12,2) | Precio unitario en COP |
+| `unit` | VARCHAR(50) | Unidad de medida (ej: "ml", "tableta", "ampolla") |
+| `active` | BOOLEAN | Si `false`, no aparece en el wizard de cobros |
+
+---
+
+### `vaccine_catalog`
+Catálogo de vacunas con precios, gestionado por el administrador.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `name` | VARCHAR(100) UK | Nombre de la vacuna (único) |
+| `description` | VARCHAR(255) | Descripción opcional |
+| `price` | DECIMAL(12,2) | Precio por dosis en COP |
+| `active` | BOOLEAN | Si `false`, no aparece en el wizard de cobros |
+
+---
+
+### `payment_items`
+Ítems individuales de un pago (servicios, medicamentos, vacunas). Permite facturación detallada.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `payment_id` | BIGINT FK → payments | Pago al que pertenece este ítem |
+| `item_type` | VARCHAR(20) | Tipo: "SERVICE", "MEDICATION", "VACCINE" |
+| `item_name` | VARCHAR(100) | Nombre del ítem al momento del cobro |
+| `description` | VARCHAR(255) | Descripción opcional |
+| `quantity` | DECIMAL(10,2) | Cantidad (ej: 2 dosis, 3 ml) |
+| `unit` | VARCHAR(50) | Unidad (ej: "dosis", "ml", "tableta") |
+| `unit_price` | DECIMAL(12,2) | Precio unitario |
+| `subtotal` | DECIMAL(12,2) | Subtotal = quantity × unit_price |
+
+---
+
+### `payment_adjustments`
+Registro de ajustes manuales al monto de un pago. Incluye auditoría completa.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `id` | BIGINT PK | Identificador autoincremental |
+| `payment_id` | BIGINT FK → payments | Pago ajustado |
+| `original_amount` | DECIMAL(12,2) | Monto original antes del ajuste |
+| `adjusted_amount` | DECIMAL(12,2) | Monto ajustado |
+| `difference` | DECIMAL(12,2) | Diferencia (puede ser positiva o negativa) |
+| `reason` | VARCHAR(500) | Motivo del ajuste (obligatorio) |
+| `adjusted_by` | VARCHAR(120) | Email de la recepcionista que hizo el ajuste |
+| `adjusted_by_name` | VARCHAR(120) | Nombre de la recepcionista |
+| `adjusted_at` | DATETIME | Fecha y hora del ajuste |
 
 ---
 
@@ -230,6 +294,9 @@ Tokens de renovación de sesión con duración de 7 días.
 ## Notas de diseño
 
 - `payments.appointment_id` es nullable a propósito: si una cita se elimina, el registro de pago se conserva como historial contable permanente.
+- `payment_items` y `payment_adjustments` tienen `ON DELETE CASCADE`: si se elimina un pago, sus ítems y ajustes se eliminan automáticamente.
+- `payment_adjustments` registra auditoría completa: quién ajustó (email y nombre), cuándo, monto original, monto ajustado y diferencia.
+- El monto total de un pago (`payments.amount`) es la suma de todos sus `payment_items.subtotal`, pero puede ser ajustado manualmente por la recepcionista.
 - `pets.owner_email` se actualiza en cascada desde `ProfileService` cuando el cliente cambia su correo.
 - `codigos_2fa` tiene `CascadeType.ALL + orphanRemoval = true` desde `User`, por lo que al eliminar un usuario todos sus códigos 2FA se eliminan automáticamente.
 - Los índices en `payments` optimizan las consultas más frecuentes del panel de administración (por cliente, estado y fecha).

@@ -4,9 +4,14 @@ import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.PaymentStatus;
 import co.edu.uniquindio.backendpawsoft.model.Payment;
+import co.edu.uniquindio.backendpawsoft.model.PaymentAdjustment;
+import co.edu.uniquindio.backendpawsoft.model.PaymentItem;
 import co.edu.uniquindio.backendpawsoft.model.ServicePrice;
+import co.edu.uniquindio.backendpawsoft.repository.PaymentAdjustmentRepository;
+import co.edu.uniquindio.backendpawsoft.repository.PaymentItemRepository;
 import co.edu.uniquindio.backendpawsoft.repository.PaymentRepository;
 import co.edu.uniquindio.backendpawsoft.repository.ServicePriceRepository;
+import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +52,9 @@ public class PaymentService {
 
     private final PaymentRepository      paymentRepository;
     private final ServicePriceRepository servicePriceRepository;
+    private final PaymentItemRepository  paymentItemRepository;
+    private final PaymentAdjustmentRepository paymentAdjustmentRepository;
+    private final UserRepository         userRepository;
     private final AuditLogService        auditLogService;
 
     /* ════════════════════════════════════════════════════════════
@@ -97,6 +105,24 @@ public class PaymentService {
 
         Payment saved = paymentRepository.save(payment);
 
+        // Guardar ítems si existen
+        if (req.getItems() != null && !req.getItems().isEmpty()) {
+            for (PaymentItemRequest itemReq : req.getItems()) {
+                PaymentItem item = PaymentItem.builder()
+                        .payment(saved)
+                        .itemType(itemReq.getItemType())
+                        .itemName(itemReq.getItemName())
+                        .description(itemReq.getDescription())
+                        .quantity(itemReq.getQuantity())
+                        .unit(itemReq.getUnit())
+                        .unitPrice(itemReq.getUnitPrice())
+                        .subtotal(itemReq.getQuantity().multiply(itemReq.getUnitPrice()))
+                        .build();
+                saved.getItems().add(item);
+            }
+            saved = paymentRepository.save(saved);
+        }
+
         auditLogService.log("PAYMENT_CREATE", "Pago registrado para cita #" + req.getAppointmentId(), "PAYMENT", saved.getId().intValue());
 
         return toResponse(saved);
@@ -138,6 +164,50 @@ public class PaymentService {
         auditLogService.log("PAYMENT_REVERTED", "Pago revertido a pendiente", "PAYMENT", paymentId.intValue());
 
         return response;
+    }
+
+    /**
+     * Ajusta el monto de un pago con auditoría completa.
+     * Solo disponible para recepcionistas.
+     *
+     * @param paymentId ID del pago a ajustar
+     * @param req datos del ajuste (nuevo monto y motivo)
+     * @param adjustedBy email de la recepcionista
+     */
+    @Transactional
+    public PaymentResponse adjustPaymentAmount(Long paymentId, PaymentAdjustmentRequest req, String adjustedBy) {
+        Payment payment = findOrThrow(paymentId);
+
+        // Obtener nombre de la recepcionista
+        co.edu.uniquindio.backendpawsoft.model.User receptionist = userRepository.findByEmail(adjustedBy)
+                .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado: " + adjustedBy));
+
+        BigDecimal originalAmount = payment.getAmount();
+        BigDecimal difference = req.getAdjustedAmount().subtract(originalAmount);
+
+        // Crear registro de ajuste
+        PaymentAdjustment adjustment = PaymentAdjustment.builder()
+                .payment(payment)
+                .originalAmount(originalAmount)
+                .adjustedAmount(req.getAdjustedAmount())
+                .difference(difference)
+                .reason(req.getReason())
+                .adjustedBy(adjustedBy)
+                .adjustedByName(receptionist.getName())
+                .adjustedAt(LocalDateTime.now())
+                .build();
+
+        payment.getAdjustments().add(adjustment);
+        payment.setAmount(req.getAdjustedAmount());
+
+        Payment saved = paymentRepository.save(payment);
+
+        auditLogService.log("PAYMENT_ADJUSTED", 
+                "Monto ajustado de " + originalAmount + " a " + req.getAdjustedAmount() + 
+                ". Motivo: " + req.getReason(), 
+                "PAYMENT", paymentId.intValue());
+
+        return toResponse(saved);
     }
 
     /** Lista todos los pagos, más recientes primero. */
@@ -293,6 +363,34 @@ public class PaymentService {
                 .receivedBy     (p.getReceivedBy())
                 .notes          (p.getNotes())
                 .createdAt      (p.getCreatedAt())
+                .items          (p.getItems().stream().map(this::toItemResponse).toList())
+                .adjustments    (p.getAdjustments().stream().map(this::toAdjustmentResponse).toList())
+                .build();
+    }
+
+    private PaymentItemResponse toItemResponse(PaymentItem item) {
+        return PaymentItemResponse.builder()
+                .id(item.getId())
+                .itemType(item.getItemType())
+                .itemName(item.getItemName())
+                .description(item.getDescription())
+                .quantity(item.getQuantity())
+                .unit(item.getUnit())
+                .unitPrice(item.getUnitPrice())
+                .subtotal(item.getSubtotal())
+                .build();
+    }
+
+    private PaymentAdjustmentResponse toAdjustmentResponse(PaymentAdjustment adj) {
+        return PaymentAdjustmentResponse.builder()
+                .id(adj.getId())
+                .originalAmount(adj.getOriginalAmount())
+                .adjustedAmount(adj.getAdjustedAmount())
+                .difference(adj.getDifference())
+                .reason(adj.getReason())
+                .adjustedBy(adj.getAdjustedBy())
+                .adjustedByName(adj.getAdjustedByName())
+                .adjustedAt(adj.getAdjustedAt())
                 .build();
     }
 
