@@ -92,6 +92,27 @@ public class MedicalRecord {
     @Column(length = 300)
     private String proximoControlMotivo;
 
+    // ── Antecedentes (prellenado de hoja maestra, editable) ────────────────
+    /** Alergias detectadas en ESTA consulta. */
+    @Column(columnDefinition = "TEXT")
+    private String allergiesFound;
+
+    /** Condiciones detectadas en ESTA consulta. */
+    @Column(columnDefinition = "TEXT")
+    private String conditionsFound;
+
+    /** Antecedentes quirúrgicos relevantes. */
+    @Column(columnDefinition = "TEXT")
+    private String surgicalNote;
+
+    /** Medicamentos activos al momento de la consulta. */
+    @Column(columnDefinition = "TEXT")
+    private String currentMedsNote;
+
+    /** Estado de ánimo / comportamiento de la mascota. */
+    @Column(length = 255)
+    private String moodBehavior;
+
     // ── Archivos adjuntos ──────────────────────────────────────────────────
     /** JSON serializado de URLs de fotos (radiografías, análisis, etc.) subidas a Cloudinary. */
     @Column(columnDefinition = "TEXT")

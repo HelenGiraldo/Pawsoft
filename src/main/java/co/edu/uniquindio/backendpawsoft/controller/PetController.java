@@ -51,8 +51,11 @@ public class PetController {
 
     /**
      * Registra una nueva mascota asociada al cliente autenticado.
+     * 
+     * Si se proporciona información médica inicial, se crea la hoja médica maestra
+     * automáticamente. Esto es útil para emergencias y mascotas que vienen de otra clínica.
      *
-     * @param req  Datos de la mascota a registrar.
+     * @param req  Datos de la mascota a registrar (incluye información médica opcional).
      * @param auth Objeto de autenticación que contiene el email del propietario.
      * @return Mascota creada con su ID asignado.
      */
@@ -60,7 +63,20 @@ public class PetController {
     public ResponseEntity<PetResponse> create(
             @Valid @RequestBody PetRequest req,
             Authentication auth) {
-        return ResponseEntity.ok(petService.create(req, auth.getName()));
+        
+        // Si hay información médica inicial, usarla
+        if (req.getMedicalProfileInitial() != null) {
+            return ResponseEntity.ok(
+                    petService.createWithMedicalProfile(
+                            req,
+                            req.getMedicalProfileInitial(),
+                            auth.getName()
+                    )
+            );
+        } else {
+            // Crear sin información médica (compatibilidad hacia atrás)
+            return ResponseEntity.ok(petService.create(req, auth.getName()));
+        }
     }
 
     /**

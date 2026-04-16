@@ -1,14 +1,19 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class PaymentAdjustmentResponse {
+    
     private Long id;
     private BigDecimal originalAmount;
     private BigDecimal adjustedAmount;

@@ -13,15 +13,19 @@ package co.edu.uniquindio.backendpawsoft.service;
  * Profesor: Raúl Yulbraynner Rivera Gálvez
  */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
+import co.edu.uniquindio.backendpawsoft.dto.CreateMedicalProfileInitialRequest;
 import co.edu.uniquindio.backendpawsoft.dto.PetRequest;
 import co.edu.uniquindio.backendpawsoft.dto.PetResponse;
 import co.edu.uniquindio.backendpawsoft.model.Pet;
+import co.edu.uniquindio.backendpawsoft.model.PetMedicalProfile;
 import co.edu.uniquindio.backendpawsoft.repository.AppointmentRepository;
+import co.edu.uniquindio.backendpawsoft.repository.PetMedicalProfileRepository;
 import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -30,6 +34,7 @@ public class PetService {
 
     private final PetRepository petRepository;
     private final AppointmentRepository appointmentRepository;
+    private final PetMedicalProfileRepository petMedicalProfileRepository;
     private final AuditLogService auditLogService;
 
     public List<PetResponse> getByOwner(String email) {
@@ -91,6 +96,56 @@ public class PetService {
         petRepository.delete(pet);
 
         auditLogService.log("PET_DELETE", "Cliente eliminó mascota", "PET", id.intValue());
+    }
+
+    /**
+     * Crea una mascota con información médica inicial.
+     * La hoja médica maestra se crea automáticamente con los datos proporcionados.
+     * 
+     * @param req Datos de la mascota
+     * @param medicalProfileRequest Información médica inicial (opcional)
+     * @param ownerEmail Email del propietario
+     * @return Mascota creada
+     */
+    @Transactional
+    public PetResponse createWithMedicalProfile(
+            PetRequest req,
+            CreateMedicalProfileInitialRequest medicalProfileRequest,
+            String ownerEmail
+    ) {
+        // 1. Crear mascota
+        Pet pet = Pet.builder()
+                .name(req.getName())
+                .species(req.getSpecies())
+                .breed(req.getBreed())
+                .birthDate(req.getBirthDate())
+                .sex(req.getSex())
+                .ownerEmail(ownerEmail)
+                .photoUrl(req.getPhotoUrl())
+                .build();
+        
+        Pet savedPet = petRepository.save(pet);
+        
+        // 2. Crear hoja médica maestra con datos iniciales
+        if (medicalProfileRequest != null) {
+            PetMedicalProfile profile = PetMedicalProfile.builder()
+                    .pet(savedPet)
+                    .bloodType(medicalProfileRequest.getBloodType())
+                    .knownAllergies(medicalProfileRequest.getKnownAllergies())
+                    .chronicConditions(medicalProfileRequest.getChronicConditions())
+                    .currentMedications(medicalProfileRequest.getCurrentMedications())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            
+            petMedicalProfileRepository.save(profile);
+        }
+        
+        // 3. Registrar en auditoría
+        auditLogService.log("PET_CREATE_WITH_MEDICAL_PROFILE", 
+                "Cliente registró nueva mascota con información médica inicial", 
+                "PET", savedPet.getId().intValue());
+        
+        return toResponse(savedPet);
     }
 
     private PetResponse toResponse(Pet pet) {

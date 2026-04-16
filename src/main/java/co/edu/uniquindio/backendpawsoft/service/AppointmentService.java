@@ -406,14 +406,6 @@ public class AppointmentService {
     }
 
     /**
-     * Inicia la atención de una cita (CONFIRMED → IN_PROGRESS).
-     * Valida que no haya otra cita en progreso para el mismo veterinario.
-     *
-     * @param id identificador de la cita
-     * @param vetEmail correo del veterinario autenticado
-     * @throws RuntimeException si ya hay una cita en progreso o la cita no está confirmada
-     */
-    /**
      * Inicia una atención médica cambiando el estado de la cita a IN_PROGRESS.
      * Valida que el veterinario no tenga otra cita en progreso simultáneamente.
      *
@@ -433,8 +425,8 @@ public class AppointmentService {
             throw new RuntimeException("Esta cita no está asignada a ti");
         }
 
-        if (appointment.getStatus() != AppointmentStatus.CONFIRMED) {
-            throw new RuntimeException("Solo se pueden iniciar citas confirmadas");
+        if (appointment.getStatus() != AppointmentStatus.CONFIRMED && appointment.getStatus() != AppointmentStatus.UPCOMING) {
+            throw new RuntimeException("Solo se pueden iniciar citas confirmadas o programadas");
         }
 
         // Verificar que no haya otra cita en progreso
@@ -453,14 +445,6 @@ public class AppointmentService {
         auditLogService.log("APPOINTMENT_START", "Cita iniciada por veterinario", "APPOINTMENT", id.intValue());
     }
 
-    /**
-     * Cancela una atención iniciada por error (IN_PROGRESS → CONFIRMED).
-     * Permite al veterinario revertir el inicio de una cita equivocada.
-     *
-     * @param id identificador de la cita
-     * @param vetEmail correo del veterinario autenticado
-     * @throws RuntimeException si la cita no está en progreso o no pertenece al veterinario
-     */
     /**
      * Cancela una atención médica iniciada por error, revirtiendo el estado de IN_PROGRESS a CONFIRMED.
      * Permite al veterinario corregir si inició la cita equivocada.
@@ -489,5 +473,57 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
 
         auditLogService.log("APPOINTMENT_CANCEL_START", "Atención cancelada por veterinario", "APPOINTMENT", id.intValue());
+    }
+
+    public void completeAppointment(Long id, String vetEmail) {
+        User vet = userRepository.findByEmail(vetEmail)
+                .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
+
+        if (!appointment.getVet().getId().equals(vet.getId())) {
+            throw new RuntimeException("Esta cita no está asignada a ti");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.IN_PROGRESS) {
+            throw new RuntimeException("Solo se pueden completar citas en progreso");
+        }
+
+        appointment.setStatus(AppointmentStatus.COMPLETED);
+        appointmentRepository.save(appointment);
+
+        auditLogService.log("APPOINTMENT_COMPLETE", "Atención completada por veterinario", "APPOINTMENT", id.intValue());
+    }
+
+    public void cleanupInProgressAppointments(String vetEmail) {
+        User vet = userRepository.findByEmail(vetEmail)
+                .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
+
+        List<Appointment> inProgressAppointments = appointmentRepository
+                .findByVetIdOrderByDateAscTimeAsc(vet.getId())
+                .stream()
+                .filter(a -> a.getStatus() == AppointmentStatus.IN_PROGRESS)
+                .toList();
+
+        for (Appointment appointment : inProgressAppointments) {
+            appointment.setStatus(AppointmentStatus.CONFIRMED);
+            appointmentRepository.save(appointment);
+            auditLogService.log("APPOINTMENT_CLEANUP", "Cita reseteada de IN_PROGRESS a CONFIRMED", "APPOINTMENT", appointment.getId().intValue());
+        }
+    }
+
+    public List<RecepAppointmentResponse> getTodayAppointmentsByVet(String email) {
+        User vet = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
+
+        LocalDate today = LocalDate.now();
+        
+        return appointmentRepository
+                .findByVetIdOrderByDateAscTimeAsc(vet.getId())
+                .stream()
+                .filter(a -> a.getDate().equals(today))
+                .map(this::mapToRecepResponse)
+                .toList();
     }
 }

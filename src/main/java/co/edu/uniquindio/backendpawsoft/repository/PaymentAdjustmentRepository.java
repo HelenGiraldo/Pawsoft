@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface PaymentAdjustmentRepository extends JpaRepository<PaymentAdjustment, Long> {
     
-    List<PaymentAdjustment> findByPaymentIdOrderByAdjustedAtDesc(Long paymentId);
+    List<PaymentAdjustment> findAllByOrderByAdjustedAtDesc();
 }

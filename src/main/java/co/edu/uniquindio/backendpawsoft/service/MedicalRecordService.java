@@ -124,6 +124,31 @@ public class MedicalRecordService {
     }
 
     /**
+     * Historial clínico completo de una mascota — accesible para todos los veterinarios.
+     * Solo retorna registros de citas COMPLETED.
+     */
+    public List<MedicalRecordResponse> getByPet(Long petId) {
+        return medicalRecordRepository.findByPetIdOrderByCreadoEnDesc(petId)
+                .stream()
+                .filter(r -> r.getAppointment().getStatus() == AppointmentStatus.COMPLETED)
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /**
+     * Historial clínico completo de todos los veterinarios — para el módulo de historial compartido.
+     * Solo retorna registros de citas COMPLETED.
+     */
+    public List<MedicalRecordResponse> getAll() {
+        return medicalRecordRepository.findAll()
+                .stream()
+                .filter(r -> r.getAppointment().getStatus() == AppointmentStatus.COMPLETED)
+                .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /**
      * Obtiene el registro médico de una cita específica.
      */
     public MedicalRecordResponse getByAppointment(Long appointmentId) {

@@ -121,9 +121,17 @@ public class ChatbotController {
             errorResponse.setSuccess(false);
             return ResponseEntity.status(401).body(errorResponse);
         } catch (Exception e) {
-            log.error("[CHATBOT] action=CHAT_REQUEST error=INTERNAL_ERROR message={}", e.getMessage(), e);
+            log.error("[CHATBOT] action=CHAT_REQUEST error=INTERNAL_ERROR message={} cause={}", 
+                    e.getMessage(), e.getCause() != null ? e.getCause().getMessage() : "unknown", e);
             ChatResponse errorResponse = new ChatResponse();
-            errorResponse.setReply("Lo siento, ocurrió un error. Intenta de nuevo.");
+            
+            // Mensajes de error más específicos para debugging
+            String errorMsg = "Lo siento, ocurrió un error. Intenta de nuevo.";
+            if (e.getMessage() != null && e.getMessage().contains("groq")) {
+                errorMsg = "Error conectando con el servicio de IA. Verifica la configuración del servidor.";
+            }
+            
+            errorResponse.setReply(errorMsg);
             errorResponse.setSuccess(false);
             return ResponseEntity.status(500).body(errorResponse);
         }

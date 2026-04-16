@@ -64,6 +64,28 @@ public class VetMedicalRecordController {
     }
 
     /**
+     * Retorna el historial clínico completo de todos los veterinarios.
+     * Visible para cualquier veterinario autenticado.
+     *
+     * GET /api/vet/medical-records/all
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<MedicalRecordResponse>> getHistorialCompleto() {
+        return ResponseEntity.ok(medicalRecordService.getAll());
+    }
+
+    /**
+     * Retorna el historial clínico completo de una mascota — accesible para todos los vets.
+     * Incluye el nombre del veterinario que realizó cada atención.
+     *
+     * GET /api/vet/medical-records/pet/{petId}
+     */
+    @GetMapping("/pet/{petId}")
+    public ResponseEntity<List<MedicalRecordResponse>> getHistorialByPet(@PathVariable Long petId) {
+        return ResponseEntity.ok(medicalRecordService.getByPet(petId));
+    }
+
+    /**
      * Retorna el registro médico de una cita específica.
      *
      * GET /api/vet/medical-records/appointment/{appointmentId}

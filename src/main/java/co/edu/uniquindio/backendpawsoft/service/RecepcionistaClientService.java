@@ -5,15 +5,12 @@ import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.Role;
 import co.edu.uniquindio.backendpawsoft.model.Pet;
 import co.edu.uniquindio.backendpawsoft.model.User;
-import co.edu.uniquindio.backendpawsoft.repository.AppointmentRepository;
-import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
-import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
+import co.edu.uniquindio.backendpawsoft.repository.*;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import co.edu.uniquindio.backendpawsoft.repository.PaymentRepository;
-import co.edu.uniquindio.backendpawsoft.repository.PasswordResetTokenRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +49,13 @@ public class RecepcionistaClientService {
     private final PaymentRepository paymentRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final AuditLogService auditLogService;
+    private final PetMedicalProfileService medicalProfileService;
+    private final PetMedicalProfileRepository medicalProfileRepository;
+    private final EntityManager entityManager;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final MedicalAttachmentRepository medicalAttachmentRepository;
+    private final HospitalizationRepository hospitalizationRepository;
+    private final MedicalRecordRepository medicalRecordRepository;
 
     // ═══════════════════════════════════════════════════════════════
     //  CLIENTES
@@ -141,20 +145,46 @@ public class RecepcionistaClientService {
     public void deleteClient(Long id) {
         User user = findClientById(id);
 
-        // 1 — Pagos
-        paymentRepository.deleteByClientEmail(user.getEmail());
-
-        // 2 — Tokens de reset de contraseña (FK → users)
-        passwordResetTokenRepository.deleteByUserId(id);
-
-        // 3 — Citas (FK → users y FK → pets, se borran antes que pets)
+        // 1 — Citas primero (FK → users y FK → pets)
         appointmentRepository.deleteByClientId(id);
+        entityManager.flush();
 
-        // 4 — Mascotas (FK → users)
+        // 2 — Pagos (después de citas para evitar FK constraint)
+        paymentRepository.deleteByClientEmail(user.getEmail());
+        entityManager.flush();
+
+        // 3 — Tokens de reset de contraseña (FK → users)
+        passwordResetTokenRepository.deleteByUserId(id);
+        entityManager.flush();
+
+        // 4 — Tokens de verificación de email (FK → users)
+        emailVerificationTokenRepository.deleteByUserId(id);
+        entityManager.flush();
+
+        // 5 — Archivos médicos subidos por el usuario
+        medicalAttachmentRepository.deleteByUploadedById(id);
+        entityManager.flush();
+
+        // 6 — Registros médicos creados por el usuario
+        medicalRecordRepository.deleteByVetId(id);
+        entityManager.flush();
+
+        // 7 — Hospitalizaciones del usuario
+        hospitalizationRepository.deleteByVetId(id);
+        entityManager.flush();
+
+        // 8 — Perfiles médicos de mascotas del cliente
+        petRepository.findByOwnerEmail(user.getEmail())
+                .forEach(pet -> medicalProfileRepository.deleteByPetId(pet.getId()));
+        entityManager.flush();
+
+        // 9 — Mascotas (FK → users)
         petRepository.deleteByOwnerEmail(user.getEmail());
+        entityManager.flush();
 
-        // 5 — Usuario
+        // 10 — Usuario
         userRepository.deleteById(id);
+        entityManager.flush();
 
         auditLogService.log("RECEP_DELETE_CLIENT", "Recepcionista eliminó cliente y sus datos", "USER", id.intValue());
     }
@@ -173,7 +203,7 @@ public class RecepcionistaClientService {
 
     /** Agrega una nueva mascota a un cliente existente. */
     public PetResponse createPet(RecepPetRequest request) {
-        userRepository.findByEmail(request.getOwnerEmail())
+        User owner = userRepository.findByEmail(request.getOwnerEmail())
                 .orElseThrow(() -> new RuntimeException(
                         "Cliente no encontrado: " + request.getOwnerEmail()));
 
@@ -188,6 +218,24 @@ public class RecepcionistaClientService {
                 .build();
 
         Pet saved = petRepository.save(pet);
+
+        // Crear perfil médico inicial si se proporcionó información médica
+        if (request.getMedicalProfileInitial() != null) {
+            CreateMedicalProfileInitialRequest medicalInfo = request.getMedicalProfileInitial();
+            
+            // Solo crear el perfil si al menos un campo tiene información
+            if (hasAnyMedicalInfo(medicalInfo)) {
+                medicalProfileService.createInitialProfile(
+                    saved.getId(),
+                    medicalInfo.getBloodType(),
+                    medicalInfo.getKnownAllergies(),
+                    medicalInfo.getChronicConditions(),
+                    medicalInfo.getCurrentMedications(),
+                    medicalInfo.getAdditionalNotes(),
+                    owner
+                );
+            }
+        }
 
         auditLogService.log("RECEP_CREATE_PET", "Recepcionista registró nueva mascota", "PET", saved.getId().intValue());
 
@@ -221,15 +269,22 @@ public class RecepcionistaClientService {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Mascota no encontrada: " + id));
 
-        // 1 — Pagos de las citas de esta mascota (por appointmentId, no por nombre)
+        // 1 — Perfil médico de la mascota
+        medicalProfileRepository.deleteByPetId(id);
+        entityManager.flush();
+
+        // 2 — Pagos de las citas de esta mascota (por appointmentId, no por nombre)
         appointmentRepository.findByPetId(id)
                 .forEach(a -> paymentRepository.deleteByAppointmentId(a.getId()));
+        entityManager.flush();
 
-        // 2 — Citas de esta mascota (FK appointments.pet_id → pets.id)
+        // 3 — Citas de esta mascota (FK appointments.pet_id → pets.id)
         appointmentRepository.deleteByPetId(id);
+        entityManager.flush();
 
-        // 3 — Mascota
+        // 4 — Mascota
         petRepository.deleteById(id);
+        entityManager.flush();
 
         auditLogService.log("RECEP_DELETE_PET", "Recepcionista eliminó mascota", "PET", id.intValue());
     }
@@ -244,6 +299,14 @@ public class RecepcionistaClientService {
         if (user.getRole() != Role.ROLE_CLIENTE)
             throw new RuntimeException("El usuario no es un cliente: " + id);
         return user;
+    }
+    
+    private boolean hasAnyMedicalInfo(CreateMedicalProfileInitialRequest medicalInfo) {
+        return (medicalInfo.getBloodType() != null && !medicalInfo.getBloodType().trim().isEmpty()) ||
+               (medicalInfo.getKnownAllergies() != null && !medicalInfo.getKnownAllergies().trim().isEmpty()) ||
+               (medicalInfo.getChronicConditions() != null && !medicalInfo.getChronicConditions().trim().isEmpty()) ||
+               (medicalInfo.getCurrentMedications() != null && !medicalInfo.getCurrentMedications().trim().isEmpty()) ||
+               (medicalInfo.getAdditionalNotes() != null && !medicalInfo.getAdditionalNotes().trim().isEmpty());
     }
 
     private UserResponse toUserResponse(User u) {

@@ -9,6 +9,9 @@ import lombok.Data;
  * El campo birthDate se maneja como String (formato "yyyy-MM-dd") para coincidir
  * con el campo String en la entidad Pet.
  *
+ * Incluye información médica inicial opcional que será usada para crear
+ * la hoja médica maestra de la mascota.
+ *
  * Proyecto: Pawsoft
  * Universidad del Quindío
  * Programa: Ingeniería de Sistemas y Computación
@@ -42,4 +45,7 @@ public class RecepPetRequest {
 
     @NotBlank(message = "El email del propietario es obligatorio")
     private String ownerEmail;
+    
+    // Información médica inicial (opcional)
+    private CreateMedicalProfileInitialRequest medicalProfileInitial;
 }

@@ -1,5 +1,6 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -26,4 +27,11 @@ public class PetRequest {
     @NotBlank private String sex;
     private String ownerEmail;
     private String photoUrl; // URL que devuelve Cloudinary
+    
+    /**
+     * Información médica inicial (opcional).
+     * Se captura al registrar la mascota para emergencias.
+     */
+    @Valid
+    private CreateMedicalProfileInitialRequest medicalProfileInitial;
 }

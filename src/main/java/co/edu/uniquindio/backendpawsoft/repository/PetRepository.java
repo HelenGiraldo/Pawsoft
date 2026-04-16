@@ -20,4 +20,7 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
 
     // Elimina todas las mascotas de un cliente — usado al borrar el cliente
     void deleteByOwnerEmail(String ownerEmail);
+
+    // Busca mascotas por nombre (para el vet al hospitalizar sin cita previa)
+    List<Pet> findByNameContainingIgnoreCase(String name);
 }

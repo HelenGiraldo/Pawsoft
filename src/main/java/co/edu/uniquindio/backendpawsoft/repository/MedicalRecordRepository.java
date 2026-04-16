@@ -22,4 +22,6 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
 
     /** Registro médico asociado a una cita específica. */
     Optional<MedicalRecord> findByAppointmentId(Long appointmentId);
+
+    void deleteByVetId(Long vetId);
 }

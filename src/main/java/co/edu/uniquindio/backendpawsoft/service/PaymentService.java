@@ -105,9 +105,11 @@ public class PaymentService {
 
         Payment saved = paymentRepository.save(payment);
 
-        // Guardar ítems si existen
+        // Guardar ítems si existen y recalcular amount automáticamente
         if (req.getItems() != null && !req.getItems().isEmpty()) {
+            BigDecimal totalAmount = BigDecimal.ZERO;
             for (PaymentItemRequest itemReq : req.getItems()) {
+                BigDecimal subtotal = itemReq.getQuantity().multiply(itemReq.getUnitPrice());
                 PaymentItem item = PaymentItem.builder()
                         .payment(saved)
                         .itemType(itemReq.getItemType())
@@ -116,10 +118,13 @@ public class PaymentService {
                         .quantity(itemReq.getQuantity())
                         .unit(itemReq.getUnit())
                         .unitPrice(itemReq.getUnitPrice())
-                        .subtotal(itemReq.getQuantity().multiply(itemReq.getUnitPrice()))
+                        .subtotal(subtotal)
                         .build();
                 saved.getItems().add(item);
+                totalAmount = totalAmount.add(subtotal);
             }
+            // Actualizar el amount con la suma de todos los subtotales
+            saved.setAmount(totalAmount);
             saved = paymentRepository.save(saved);
         }
 
