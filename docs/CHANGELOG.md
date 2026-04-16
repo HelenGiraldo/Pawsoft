@@ -4,6 +4,73 @@ Registro de cambios, correcciones y mejoras del sistema.
 
 ---
 
+## [2026-04-15] - 15 de abril de 2026
+
+### Nuevas Funcionalidades
+
+#### Sistema de Gestión de Atención Médica con Perfiles y Hospitalización
+**Tipo:** Feature Completa  
+**Rama:** `feat/proceso-historial-clinico`  
+**Commit:** `6e0e363`  
+**Funcionalidad:** Sistema integral de gestión de atención médica veterinaria con perfiles médicos maestros, hospitalización, adjuntos de archivos y auditoría.
+
+**Nuevos Modelos:**
+- `PetMedicalProfile` - Perfil médico maestro de cada mascota
+- `Hospitalization` - Registro de hospitalizaciones con estado (ACTIVE, DISCHARGED, DECEASED)
+- `HospitalizationNote` - Notas diarias durante hospitalización
+- `MedicalAttachment` - Archivos médicos adjuntos (imágenes, PDFs, documentos)
+
+**Nuevos Controladores:**
+- `PetMedicalProfileController` - Gestión de perfiles médicos
+- `HospitalizationController` - Gestión de hospitalizaciones
+- `MedicalAttachmentController` - Manejo de archivos médicos
+
+**Nuevos Servicios:**
+- `PetMedicalProfileService` - Lógica de perfiles médicos
+- `HospitalizationService` - Flujo de hospitalización
+- `MedicalAttachmentService` - Manejo de adjuntos
+- `CloudinaryService` - Integración con Cloudinary para almacenamiento en nube
+- `AuditService` - Auditoría de operaciones del sistema
+
+**Nuevos DTOs:**
+- `PetMedicalProfileDTO` - Transferencia de datos de perfil médico
+- `HospitalizationDTO` - Transferencia de datos de hospitalización
+- `HospitalizationNoteDTO` - Transferencia de notas
+- `MedicalAttachmentDTO` - Transferencia de adjuntos
+- `CreateHospitalizationRequest` - Crear hospitalización
+- `UpdateMedicalProfileRequest` - Actualizar perfil médico
+- `DeceasedRequest` - Registrar fallecimiento
+- `AddNoteRequest` - Agregar nota
+
+**Nuevos Enums:**
+- `HospitalizationStatus` - Estados de hospitalización
+- `AttachmentFileType` - Tipos de archivo (IMAGE, PDF, DOCUMENT)
+- `AttachmentReferenceType` - Referencia de adjunto (MEDICAL_RECORD, HOSPITALIZATION)
+
+**Nuevos Repositorios:**
+- `PetMedicalProfileRepository` - Consultas de perfiles médicos
+- `HospitalizationRepository` - Consultas de hospitalizaciones
+- `HospitalizationNoteRepository` - Consultas de notas
+- `MedicalAttachmentRepository` - Consultas de adjuntos
+
+**Base de Datos:**
+- `V5__Create_Medical_Profile_Hospitalization_Tables.sql` - Nuevas tablas
+- `data-init.sql` - Datos iniciales
+
+**Mejoras en Servicios Existentes:**
+- `MedicalRecordService` - Mejoras en gestión de registros
+- `AppointmentService` - Métodos de limpieza de citas
+- `VetMedicalRecordController` - Nuevos endpoints
+- `PetController` - Gestión mejorada de mascotas
+
+**Estadísticas:**
+- 62 archivos modificados
+- 40+ nuevos archivos
+- +2,692 líneas agregadas
+- -1,657 líneas removidas
+
+---
+
 ## [2026-04-11] - 11 de abril de 2026
 
 ### Nuevas Funcionalidades
