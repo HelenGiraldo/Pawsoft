@@ -17,6 +17,17 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio para gestionar archivos adjuntos médicos.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @Service
 @RequiredArgsConstructor
@@ -33,6 +44,12 @@ public class MedicalAttachmentService {
      * Validaciones:
      * - Imágenes: JPG/PNG, máx 2MB
      * - PDFs: máx 5MB
+     * 
+     * @param file Archivo a subir
+     * @param referenceType Tipo de referencia (MEDICAL_RECORD, HOSPITALIZATION, etc.)
+     * @param referenceId ID de la referencia
+     * @param uploadedBy Usuario que sube el archivo
+     * @return DTO con información del archivo subido
      */
     public MedicalAttachmentDTO uploadAttachment(
             MultipartFile file,
@@ -94,6 +111,10 @@ public class MedicalAttachmentService {
 
     /**
      * Obtiene todos los archivos adjuntos de una referencia.
+     * 
+     * @param referenceType Tipo de referencia
+     * @param referenceId ID de la referencia
+     * @return Lista de archivos adjuntos
      */
     @Transactional(readOnly = true)
     public List<MedicalAttachmentDTO> getAttachments(
@@ -109,6 +130,9 @@ public class MedicalAttachmentService {
     /**
      * Elimina un archivo adjunto.
      * Solo el usuario que lo subió puede eliminarlo.
+     * 
+     * @param attachmentId ID del archivo a eliminar
+     * @param user Usuario que solicita la eliminación
      */
     public void deleteAttachment(Long attachmentId, User user) {
         MedicalAttachment attachment = attachmentRepository.findById(attachmentId)
@@ -136,6 +160,12 @@ public class MedicalAttachmentService {
 
     // ── Métodos auxiliares ──────────────────────────────────────────────────
 
+    /**
+     * Convierte una entidad MedicalAttachment a DTO.
+     * 
+     * @param a Entidad MedicalAttachment
+     * @return DTO con información del archivo
+     */
     private MedicalAttachmentDTO toDTO(MedicalAttachment a) {
         return MedicalAttachmentDTO.builder()
                 .id(a.getId())

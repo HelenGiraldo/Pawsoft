@@ -9,6 +9,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio para gestionar auditoría de ajustes de pagos.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -17,7 +31,9 @@ public class AuditService {
     private final PaymentAdjustmentRepository paymentAdjustmentRepository;
     
     /**
-     * Obtiene todos los ajustes de pagos ordenados por fecha descendente
+     * Obtiene todos los ajustes de pagos realizados ordenados por fecha descendente.
+     * 
+     * @return Lista de ajustes de pagos con información de quién los realizó y cuándo
      */
     public List<PaymentAdjustmentResponse> getAllAdjustments() {
         return paymentAdjustmentRepository.findAllByOrderByAdjustedAtDesc()

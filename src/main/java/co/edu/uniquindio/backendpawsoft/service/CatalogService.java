@@ -11,6 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio para gestionar catálogos de medicamentos y vacunas.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -20,7 +34,9 @@ public class CatalogService {
     private final VaccineCatalogRepository vaccineCatalogRepository;
     
     /**
-     * Obtiene todos los medicamentos activos del catálogo
+     * Obtiene todos los medicamentos activos del catálogo ordenados alfabéticamente.
+     * 
+     * @return Lista de medicamentos disponibles con información de precios
      */
     public List<MedicationCatalogResponse> getActiveMedications() {
         return medicationCatalogRepository.findByActiveTrueOrderByNameAsc()
@@ -36,7 +52,9 @@ public class CatalogService {
     }
     
     /**
-     * Obtiene todas las vacunas activas del catálogo
+     * Obtiene todas las vacunas activas del catálogo ordenadas alfabéticamente.
+     * 
+     * @return Lista de vacunas disponibles con información de precios
      */
     public List<VaccineCatalogResponse> getActiveVaccines() {
         return vaccineCatalogRepository.findByActiveTrueOrderByNameAsc()

@@ -20,6 +20,17 @@ import java.util.stream.Collectors;
 
 /**
  * Servicio para gestionar la hoja médica maestra de mascotas.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @Service
 @RequiredArgsConstructor
@@ -32,6 +43,14 @@ public class PetMedicalProfileService {
     /**
      * Crea un perfil médico inicial con información proporcionada al registrar la mascota.
      * Este método es usado cuando se registra una mascota con información médica inicial.
+     * 
+     * @param petId ID de la mascota
+     * @param bloodType Tipo de sangre
+     * @param knownAllergies Alergias conocidas
+     * @param chronicConditions Condiciones crónicas
+     * @param currentMedications Medicamentos actuales
+     * @param additionalNotes Notas adicionales
+     * @param createdBy Usuario que crea el perfil
      */
     public void createInitialProfile(
             Long petId,
@@ -66,6 +85,10 @@ public class PetMedicalProfileService {
 
     /**
      * Obtiene o crea el perfil médico de una mascota.
+     * Si no existe, crea uno vacío.
+     * 
+     * @param petId ID de la mascota
+     * @return Perfil médico de la mascota
      */
     public PetMedicalProfile getOrCreateProfile(Long petId) {
         return profileRepository.findByPetId(petId)
@@ -82,7 +105,10 @@ public class PetMedicalProfileService {
     }
 
     /**
-     * Obtiene el perfil médico como DTO.
+     * Obtiene el perfil médico como DTO con información calculada.
+     * 
+     * @param petId ID de la mascota
+     * @return DTO con información del perfil médico
      */
     @Transactional(readOnly = true)
     public PetMedicalProfileDTO getProfileDTO(Long petId) {
@@ -121,12 +147,20 @@ public class PetMedicalProfileService {
     /**
      * Actualiza la hoja médica maestra después de una consulta.
      * 
-     * Lógica:
+     * Lógica de actualización:
      * - Alergias: se CONCATENAN (acumulativas, sin duplicados)
      * - Condiciones: se CONCATENAN (acumulativas, sin duplicados)
      * - Antecedentes quirúrgicos: se CONCATENAN (acumulativas)
      * - Medicamentos actuales: se REEMPLAZAN (cambian en cada consulta)
      * - Tipo de sangre: se REEMPLAZA (raro, pero posible)
+     * 
+     * @param petId ID de la mascota
+     * @param allergiesFound Alergias encontradas en la consulta
+     * @param conditionsFound Condiciones encontradas en la consulta
+     * @param surgicalNote Nota quirúrgica si aplica
+     * @param currentMeds Medicamentos actuales prescritos
+     * @param bloodType Tipo de sangre (si se actualiza)
+     * @param vet Veterinario que realiza la actualización
      */
     public void updateProfileAfterConsultation(
             Long petId,
@@ -217,6 +251,10 @@ public class PetMedicalProfileService {
 
     /**
      * Actualiza el tipo de sangre de la mascota.
+     * 
+     * @param petId ID de la mascota
+     * @param bloodType Nuevo tipo de sangre
+     * @param vet Veterinario que realiza la actualización
      */
     public void updateBloodType(Long petId, String bloodType, User vet) {
         PetMedicalProfile profile = getOrCreateProfile(petId);

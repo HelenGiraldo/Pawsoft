@@ -16,7 +16,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Servicio para gestionar hospitalizaciones.
+ * Servicio para gestionar hospitalizaciones de mascotas.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * Raúl Yulbraynner Rivera Gálvez
  */
 @Service
 @RequiredArgsConstructor
@@ -32,6 +43,14 @@ public class HospitalizationService {
 
     /**
      * Crea una nueva hospitalización.
+     * 
+     * @param petId ID de la mascota
+     * @param vetId ID del veterinario responsable
+     * @param appointmentId ID de la cita asociada (opcional)
+     * @param reason Razón de la hospitalización
+     * @param initialObservations Observaciones iniciales
+     * @param hourlyRate Tarifa por hora de hospitalización
+     * @return DTO con datos de la hospitalización creada
      */
     public HospitalizationDTO createHospitalization(
             Long petId,
@@ -79,6 +98,9 @@ public class HospitalizationService {
 
     /**
      * Obtiene una hospitalización por ID.
+     * 
+     * @param id ID de la hospitalización
+     * @return DTO con datos de la hospitalización
      */
     @Transactional(readOnly = true)
     public HospitalizationDTO getHospitalization(Long id) {
@@ -90,6 +112,9 @@ public class HospitalizationService {
 
     /**
      * Obtiene todas las hospitalizaciones de una mascota.
+     * 
+     * @param petId ID de la mascota
+     * @return Lista de hospitalizaciones de la mascota
      */
     @Transactional(readOnly = true)
     public List<HospitalizationDTO> getHospitalizationsByPet(Long petId) {
@@ -101,6 +126,8 @@ public class HospitalizationService {
 
     /**
      * Obtiene todas las hospitalizaciones activas.
+     * 
+     * @return Lista de hospitalizaciones con estado ACTIVE
      */
     @Transactional(readOnly = true)
     public List<HospitalizationDTO> getActiveHospitalizations() {
@@ -112,6 +139,9 @@ public class HospitalizationService {
 
     /**
      * Obtiene las hospitalizaciones activas de un veterinario.
+     * 
+     * @param vetId ID del veterinario
+     * @return Lista de hospitalizaciones activas del veterinario
      */
     @Transactional(readOnly = true)
     public List<HospitalizationDTO> getActiveHospitalizationsByVet(Long vetId) {
@@ -123,6 +153,9 @@ public class HospitalizationService {
 
     /**
      * Obtiene todas las hospitalizaciones de un veterinario (activas, dadas de alta y fallecidas).
+     * 
+     * @param vetId ID del veterinario
+     * @return Lista de todas las hospitalizaciones del veterinario ordenadas por fecha descendente
      */
     @Transactional(readOnly = true)
     public List<HospitalizationDTO> getAllHospitalizationsByVet(Long vetId) {
@@ -134,6 +167,11 @@ public class HospitalizationService {
 
     /**
      * Cambia el estado de una hospitalización.
+     * 
+     * @param id ID de la hospitalización
+     * @param newStatus Nuevo estado
+     * @param vet Veterinario que realiza el cambio
+     * @return DTO con la hospitalización actualizada
      */
     public HospitalizationDTO updateStatus(Long id, HospitalizationStatus newStatus, User vet) {
         Hospitalization hospitalization = hospitalizationRepository.findById(id)
@@ -162,6 +200,11 @@ public class HospitalizationService {
 
     /**
      * Registra el fallecimiento de una mascota en hospitalización.
+     * 
+     * @param id ID de la hospitalización
+     * @param causeOfDeath Causa del fallecimiento
+     * @param vet Veterinario que registra el fallecimiento
+     * @return DTO con la hospitalización actualizada
      */
     public HospitalizationDTO recordDeceased(Long id, String causeOfDeath, User vet) {
         Hospitalization hospitalization = hospitalizationRepository.findById(id)
@@ -186,6 +229,11 @@ public class HospitalizationService {
 
     /**
      * Agrega una nota de evolución a una hospitalización.
+     * 
+     * @param hospitalizationId ID de la hospitalización
+     * @param noteText Contenido de la nota
+     * @param vet Veterinario que agrega la nota
+     * @return DTO con la nota creada
      */
     public HospitalizationNoteDTO addNote(Long hospitalizationId, String noteText, User vet) {
         Hospitalization hospitalization = hospitalizationRepository.findById(hospitalizationId)
@@ -211,7 +259,10 @@ public class HospitalizationService {
     }
 
     /**
-     * Obtiene todas las notas de una hospitalización.
+     * Obtiene todas las notas de una hospitalización ordenadas por fecha descendente.
+     * 
+     * @param hospitalizationId ID de la hospitalización
+     * @return Lista de notas de evolución
      */
     @Transactional(readOnly = true)
     public List<HospitalizationNoteDTO> getNotes(Long hospitalizationId) {
@@ -223,6 +274,12 @@ public class HospitalizationService {
 
     // ── Métodos auxiliares ──────────────────────────────────────────────────
 
+    /**
+     * Convierte una entidad Hospitalization a DTO.
+     * 
+     * @param h Entidad Hospitalization
+     * @return DTO con información de la hospitalización
+     */
     private HospitalizationDTO toDTO(Hospitalization h) {
         List<HospitalizationNoteDTO> notes = h.getNotes() != null ?
                 h.getNotes().stream().map(this::toNoteDTO).collect(Collectors.toList()) :
@@ -249,6 +306,12 @@ public class HospitalizationService {
                 .build();
     }
 
+    /**
+     * Convierte una entidad HospitalizationNote a DTO.
+     * 
+     * @param n Entidad HospitalizationNote
+     * @return DTO con información de la nota
+     */
     private HospitalizationNoteDTO toNoteDTO(HospitalizationNote n) {
         return HospitalizationNoteDTO.builder()
                 .id(n.getId())
