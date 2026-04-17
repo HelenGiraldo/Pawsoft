@@ -125,6 +125,21 @@ public class HospitalizationService {
     }
 
     /**
+     * Obtiene todas las hospitalizaciones del sistema (sin filtrar por veterinario).
+     * Usado por el administrador para vista de solo lectura.
+     *
+     * @return Lista de todas las hospitalizaciones ordenadas por fecha descendente
+     */
+    @Transactional(readOnly = true)
+    public List<HospitalizationDTO> getAllHospitalizations() {
+        return hospitalizationRepository.findAll()
+                .stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Obtiene todas las hospitalizaciones activas.
      * 
      * @return Lista de hospitalizaciones con estado ACTIVE
@@ -289,6 +304,8 @@ public class HospitalizationService {
                 .id(h.getId())
                 .petId(h.getPet().getId())
                 .petName(h.getPet().getName())
+                .petSpecies(h.getPet().getSpecies())
+                .ownerEmail(h.getPet().getOwnerEmail())
                 .vetId(h.getVet().getId())
                 .vetName(h.getVet().getName())
                 .appointmentId(h.getAppointment() != null ? h.getAppointment().getId() : null)

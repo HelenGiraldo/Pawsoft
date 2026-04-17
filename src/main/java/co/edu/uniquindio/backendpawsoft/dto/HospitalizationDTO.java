@@ -25,6 +25,10 @@ public class HospitalizationDTO {
 
     private String petName;
 
+    private String petSpecies;
+
+    private String ownerEmail;
+
     private Long vetId;
 
     private String vetName;
