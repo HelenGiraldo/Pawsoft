@@ -118,6 +118,10 @@ public class Payment {
     @Column(name = "received_by", length = 120)
     private String receivedBy;
 
+    /** Nombre de la recepcionista que registró / cobró el pago */
+    @Column(name = "received_by_name", length = 120)
+    private String receivedByName;
+
     /** Notas adicionales (ej: "Se aplicó descuento del 10%") */
     @Column(length = 255)
     private String notes;

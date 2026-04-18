@@ -22,9 +22,11 @@ import co.edu.uniquindio.backendpawsoft.dto.AdminPetResponse;
 import co.edu.uniquindio.backendpawsoft.dto.StaffUserRequest;
 import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
 import co.edu.uniquindio.backendpawsoft.enums.Role;
+import co.edu.uniquindio.backendpawsoft.enums.HospitalizationStatus;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
+import co.edu.uniquindio.backendpawsoft.repository.HospitalizationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +50,7 @@ public class AdminUserService {
     private final UserRepository userRepository;
     private final UserService userService; // reutiliza createStaffUser()
     private final PetRepository petRepository;
+    private final HospitalizationRepository hospitalizationRepository;
     private final AuditLogService auditLogService;
 
     /** Lista todos los usuarios que NO son clientes */
@@ -154,6 +157,20 @@ public class AdminUserService {
                             .map(u -> u.getName())
                             .orElse(p.getOwnerEmail());
 
+                    // Verificar si la mascota está fallecida
+                    Boolean isDeceased = hospitalizationRepository
+                            .findByPetIdAndStatus(p.getId(), HospitalizationStatus.DECEASED)
+                            .stream()
+                            .findAny()
+                            .isPresent();
+
+                    // Verificar si la mascota está hospitalizada (activa)
+                    Boolean isHospitalized = hospitalizationRepository
+                            .findByPetIdAndStatus(p.getId(), HospitalizationStatus.ACTIVE)
+                            .stream()
+                            .findAny()
+                            .isPresent();
+
                     return AdminPetResponse.builder()
                             .id(p.getId())
                             .name(p.getName())
@@ -164,6 +181,8 @@ public class AdminUserService {
                             .photoUrl(p.getPhotoUrl())
                             .ownerName(ownerName)
                             .ownerEmail(p.getOwnerEmail())
+                            .isDeceased(isDeceased)
+                            .isHospitalized(isHospitalized)
                             .build();
                 })
                 .toList();

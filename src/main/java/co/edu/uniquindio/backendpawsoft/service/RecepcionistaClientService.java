@@ -3,6 +3,7 @@ package co.edu.uniquindio.backendpawsoft.service;
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.Role;
+import co.edu.uniquindio.backendpawsoft.enums.HospitalizationStatus;
 import co.edu.uniquindio.backendpawsoft.model.Pet;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.*;
@@ -322,6 +323,20 @@ public class RecepcionistaClientService {
     }
 
     private PetResponse toPetResponse(Pet p) {
+        // Verificar si la mascota está fallecida
+        Boolean isDeceased = hospitalizationRepository
+                .findByPetIdAndStatus(p.getId(), HospitalizationStatus.DECEASED)
+                .stream()
+                .findAny()
+                .isPresent();
+
+        // Verificar si la mascota está hospitalizada (activa)
+        Boolean isHospitalized = hospitalizationRepository
+                .findByPetIdAndStatus(p.getId(), HospitalizationStatus.ACTIVE)
+                .stream()
+                .findAny()
+                .isPresent();
+
         return PetResponse.builder()
                 .id(p.getId())
                 .name(p.getName())
@@ -331,6 +346,8 @@ public class RecepcionistaClientService {
                 .birthDate(p.getBirthDate())
                 .photoUrl(p.getPhotoUrl())
                 .ownerEmail(p.getOwnerEmail())
+                .isDeceased(isDeceased)
+                .isHospitalized(isHospitalized)
                 .build();
     }
 }

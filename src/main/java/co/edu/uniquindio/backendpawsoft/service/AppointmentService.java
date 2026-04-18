@@ -236,18 +236,28 @@ public class AppointmentService {
         Pet pet = petRepository.findById(request.petId())
                 .orElseThrow(() -> new NotFoundException("Mascota no encontrada"));
 
-        if (request.date().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
+        // Convertir strings a LocalDate y LocalTime
+        LocalDate appointmentDate;
+        LocalTime appointmentTime;
+        try {
+            appointmentDate = LocalDate.parse(request.date());
+            appointmentTime = LocalTime.parse(request.time());
+        } catch (Exception e) {
+            throw new RuntimeException("Formato de fecha u hora inválido");
+        }
+
+        if (appointmentDate.isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
             throw new RuntimeException("No se pueden agendar citas en fechas pasadas");
         }
 
         if (appointmentRepository.existsByVetIdAndDateAndTime(
-                request.vetId(), request.date(), request.time())) {
+                request.vetId(), appointmentDate, appointmentTime)) {
             throw new RuntimeException("El horario ya está reservado para ese veterinario");
         }
 
         Appointment appointment = Appointment.builder()
-                .date(request.date())
-                .time(request.time())
+                .date(appointmentDate)
+                .time(appointmentTime)
                 .reason(request.reason())
                 .notes(request.notes())
                 .status(AppointmentStatus.UPCOMING)
@@ -278,18 +288,28 @@ public class AppointmentService {
         User vet = userRepository.findById(request.vetId())
                 .orElseThrow(() -> new NotFoundException("Veterinario no encontrado"));
 
+        // Convertir strings a LocalDate y LocalTime
+        LocalDate newDate;
+        LocalTime newTime;
+        try {
+            newDate = LocalDate.parse(request.date());
+            newTime = LocalTime.parse(request.time());
+        } catch (Exception e) {
+            throw new RuntimeException("Formato de fecha u hora inválido");
+        }
+
         // Validar conflicto de horario solo si cambió fecha/hora/vet
-        boolean slotChanged = !appointment.getDate().equals(request.date())
-                || !appointment.getTime().equals(request.time())
+        boolean slotChanged = !appointment.getDate().equals(newDate)
+                || !appointment.getTime().equals(newTime)
                 || !appointment.getVet().getId().equals(request.vetId());
 
         if (slotChanged && appointmentRepository.existsByVetIdAndDateAndTimeAndIdNot(
-                request.vetId(), request.date(), request.time(), id)) {
+                request.vetId(), newDate, newTime, id)) {
             throw new RuntimeException("El nuevo horario ya está reservado para ese veterinario");
         }
 
-        appointment.setDate(request.date());
-        appointment.setTime(request.time());
+        appointment.setDate(newDate);
+        appointment.setTime(newTime);
         appointment.setVet(vet);
         if (request.reason() != null) appointment.setReason(request.reason());
         if (request.notes()  != null) appointment.setNotes(request.notes());

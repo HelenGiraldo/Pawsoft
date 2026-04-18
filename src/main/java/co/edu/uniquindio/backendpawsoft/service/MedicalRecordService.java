@@ -4,11 +4,13 @@ import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.MedicalRecordRequest;
 import co.edu.uniquindio.backendpawsoft.dto.MedicalRecordResponse;
 import co.edu.uniquindio.backendpawsoft.enums.AppointmentStatus;
+import co.edu.uniquindio.backendpawsoft.enums.HospitalizationStatus;
 import co.edu.uniquindio.backendpawsoft.exception.NotFoundException;
 import co.edu.uniquindio.backendpawsoft.model.Appointment;
 import co.edu.uniquindio.backendpawsoft.model.MedicalRecord;
 import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.AppointmentRepository;
+import co.edu.uniquindio.backendpawsoft.repository.HospitalizationRepository;
 import co.edu.uniquindio.backendpawsoft.repository.MedicalRecordRepository;
 import co.edu.uniquindio.backendpawsoft.repository.ServicePriceRepository;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
@@ -33,6 +35,7 @@ public class MedicalRecordService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final ServicePriceRepository servicePriceRepository;
+    private final HospitalizationRepository hospitalizationRepository;
 
     /**
      * Crea o actualiza el registro médico de una cita.
@@ -52,9 +55,9 @@ public class MedicalRecordService {
         Appointment appointment = appointmentRepository.findById(request.appointmentId())
                 .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
 
-        // Validar que la cita esté CONFIRMED si se intenta cerrar
-        if (cerrar && appointment.getStatus() != AppointmentStatus.CONFIRMED) {
-            throw new RuntimeException("Solo se pueden cerrar citas que estén confirmadas");
+        // Validar que la cita esté CONFIRMED o IN_PROGRESS si se intenta cerrar
+        if (cerrar && appointment.getStatus() != AppointmentStatus.CONFIRMED && appointment.getStatus() != AppointmentStatus.IN_PROGRESS) {
+            throw new RuntimeException("Solo se pueden cerrar citas que estén confirmadas o en progreso");
         }
 
         // Crear o actualizar
@@ -197,6 +200,17 @@ public class MedicalRecordService {
 
     private MedicalRecordResponse mapToResponse(MedicalRecord r) {
         Appointment a = r.getAppointment();
+        
+        // Verificar si la mascota está fallecida
+        Boolean petIsDeceased = false;
+        if (r.getPet() != null) {
+            petIsDeceased = hospitalizationRepository
+                    .findByPetIdAndStatus(r.getPet().getId(), HospitalizationStatus.DECEASED)
+                    .stream()
+                    .findAny()
+                    .isPresent();
+        }
+        
         return new MedicalRecordResponse(
                 r.getId(),
                 a.getId(),
@@ -211,6 +225,7 @@ public class MedicalRecordService {
                 r.getPet() != null ? r.getPet().getBirthDate() : null,
                 r.getPet() != null ? r.getPet().getSex()       : "—",
                 r.getPet() != null ? r.getPet().getPhotoUrl()  : null,
+                petIsDeceased,
                 a.getClient() != null ? a.getClient().getName()  : "—",
                 a.getClient() != null ? a.getClient().getEmail() : "—",
                 r.getVet()  != null ? r.getVet().getName()     : "—",

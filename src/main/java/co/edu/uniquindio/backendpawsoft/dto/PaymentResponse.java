@@ -45,6 +45,7 @@ public class PaymentResponse {
     private LocalDateTime paymentDate;
 
     private String        receivedBy;
+    private String        receivedByName;
     private String        notes;
     private LocalDateTime createdAt;
 

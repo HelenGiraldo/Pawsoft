@@ -144,6 +144,15 @@ public class ProfileService {
 
         // ── Contraseña (opcional) ─────────────────────────────────────────────
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            // Validar contraseña actual si se proporciona una nueva contraseña
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+                throw new UnauthorizedException("Debes proporcionar tu contraseña actual para cambiarla.");
+            }
+            
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                throw new UnauthorizedException("La contraseña actual es incorrecta.");
+            }
+            
             if (!isPasswordStrong(request.getNewPassword())) {
                 throw new UnauthorizedException(
                         "La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial."
@@ -178,6 +187,23 @@ public class ProfileService {
                 "email", user.getEmail(),
                 "phone", user.getPhone() != null ? user.getPhone() : ""
         );
+    }
+
+    // ── Validación de contraseña actual ──────────────────────────────────────
+
+    /**
+     * Valida si la contraseña actual proporcionada por el usuario es correcta.
+     *
+     * @param email correo del usuario autenticado
+     * @param currentPassword contraseña actual en texto plano
+     * @return {@code true} si la contraseña es correcta; {@code false} en caso contrario
+     * @throws NotFoundException si el usuario no existe
+     */
+    public boolean validateCurrentPassword(String email, String currentPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        
+        return passwordEncoder.matches(currentPassword, user.getPassword());
     }
 
     // ── Validación de contraseña ──────────────────────────────────────────────

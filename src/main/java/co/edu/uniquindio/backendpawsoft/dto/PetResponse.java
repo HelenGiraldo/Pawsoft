@@ -27,4 +27,6 @@ public class PetResponse {
     private String sex;
     private String ownerEmail;
     private String photoUrl;
+    private Boolean isDeceased;      // Indica si la mascota está fallecida
+    private Boolean isHospitalized;  // Indica si la mascota está hospitalizada
 }

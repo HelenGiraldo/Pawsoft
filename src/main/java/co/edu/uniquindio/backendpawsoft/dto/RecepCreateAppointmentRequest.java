@@ -2,9 +2,6 @@ package co.edu.uniquindio.backendpawsoft.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 /**
  * DTO para que el recepcionista cree una cita especificando
@@ -31,14 +28,13 @@ public record RecepCreateAppointmentRequest(
         @NotNull
         Long vetId,
 
-        /** Fecha de la cita. */
-        @NotNull
-        LocalDate date,
+        /** Fecha de la cita en formato YYYY-MM-DD. */
+        @NotBlank
+        String date,
 
-        /** Hora de la cita. */
-        @NotNull
-        @JsonFormat(pattern = "HH:mm")
-        LocalTime time,
+        /** Hora de la cita en formato HH:mm. */
+        @NotBlank
+        String time,
 
         /** Motivo de consulta. */
         @NotBlank

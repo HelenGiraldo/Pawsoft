@@ -1,11 +1,7 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * DTO para que el recepcionista edite una cita existente.
@@ -17,10 +13,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
  */
 public record RecepUpdateAppointmentRequest(
 
-        @NotNull LocalDate date,
-        @NotNull
-        @JsonFormat(pattern = "HH:mm")
-        LocalTime time,
+        @NotBlank String date,
+        @NotBlank String time,
         @NotNull Long vetId,
         String reason,
         String notes

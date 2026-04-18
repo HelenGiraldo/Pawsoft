@@ -25,5 +25,6 @@ public class ProfileUpdateRequest {
     private String code;         // código 2FA de verificación
     private String email;
     private String phone;
+    private String currentPassword; // contraseña actual (requerida para cambiar contraseña)
     private String newPassword;
 }

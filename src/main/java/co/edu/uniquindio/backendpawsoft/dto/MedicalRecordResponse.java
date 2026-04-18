@@ -33,6 +33,7 @@ public record MedicalRecordResponse(
         String petBirthDate,
         String petSex,
         String petPhotoUrl,
+        Boolean petIsDeceased, // Indica si la mascota está fallecida
 
         // Propietario
         String ownerName,

@@ -1,6 +1,8 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
 import co.edu.uniquindio.backendpawsoft.dto.ProfileUpdateRequest;
+import co.edu.uniquindio.backendpawsoft.dto.ValidatePasswordRequest;
+import co.edu.uniquindio.backendpawsoft.dto.ValidatePasswordResponse;
 import co.edu.uniquindio.backendpawsoft.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +47,21 @@ public class ProfileController {
     @GetMapping("/me")
     public ResponseEntity<Map<String, String>> getProfile(Authentication auth) {
         return ResponseEntity.ok(profileService.getProfile(auth.getName()));
+    }
+
+    /**
+     * Valida la contraseña actual del usuario.
+     * POST /api/profile/validate-password
+     */
+    @PostMapping("/validate-password")
+    public ResponseEntity<ValidatePasswordResponse> validatePassword(
+            Authentication auth,
+            @RequestBody ValidatePasswordRequest request) {
+        
+        boolean isValid = profileService.validateCurrentPassword(auth.getName(), request.getCurrentPassword());
+        String message = isValid ? "Contraseña válida" : "Contraseña incorrecta";
+        
+        return ResponseEntity.ok(new ValidatePasswordResponse(isValid, message));
     }
 
     /**

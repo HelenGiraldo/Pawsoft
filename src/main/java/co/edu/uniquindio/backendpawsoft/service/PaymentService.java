@@ -99,6 +99,7 @@ public class PaymentService {
                 .amount         (req.getAmount())
                 .status         (PaymentStatus.PENDING)
                 .receivedBy     (receivedBy)
+                .receivedByName (userRepository.findByEmail(receivedBy).map(u -> u.getName()).orElse(receivedBy))
                 .notes          (req.getNotes())
                 .createdAt      (LocalDateTime.now())
                 .build();
@@ -366,6 +367,7 @@ public class PaymentService {
                 .status         (p.getStatus().name())
                 .paymentDate    (p.getPaymentDate())
                 .receivedBy     (p.getReceivedBy())
+                .receivedByName (p.getReceivedByName())
                 .notes          (p.getNotes())
                 .createdAt      (p.getCreatedAt())
                 .items          (p.getItems().stream().map(this::toItemResponse).toList())

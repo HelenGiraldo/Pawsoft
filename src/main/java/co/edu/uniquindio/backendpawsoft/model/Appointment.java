@@ -30,12 +30,12 @@ import java.time.LocalTime;
  * Raúl Yulbraynner Rivera Gálvez
  */
 @Entity
-@Table(
-        name = "appointments",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"date", "time", "vet_id"})
-        }
-)
+@Table(name = "appointments",
+       indexes = {
+           @Index(name = "idx_active_appointments", 
+                  columnList = "date, time, vet_id, status", 
+                  unique = false)
+       })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

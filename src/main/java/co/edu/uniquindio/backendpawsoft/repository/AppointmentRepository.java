@@ -59,7 +59,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("status") AppointmentStatus status
     );
 
-    boolean existsByVetIdAndDateAndTime(Long vetId, LocalDate date, LocalTime time);
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.vet.id = :vetId AND a.date = :date AND a.time = :time AND a.status != 'CANCELLED'")
+    boolean existsByVetIdAndDateAndTime(@Param("vetId") Long vetId, @Param("date") LocalDate date, @Param("time") LocalTime time);
 
     /**
      * Lista todas las citas ordenadas por fecha y hora descendente.
@@ -79,7 +80,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      * @param id    id de la cita a excluir
      * @return true si el slot está ocupado por otra cita
      */
-    boolean existsByVetIdAndDateAndTimeAndIdNot(Long vetId, LocalDate date, LocalTime time, Long id);
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.vet.id = :vetId AND a.date = :date AND a.time = :time AND a.status != 'CANCELLED' AND a.id != :id")
+    boolean existsByVetIdAndDateAndTimeAndIdNot(@Param("vetId") Long vetId, @Param("date") LocalDate date, @Param("time") LocalTime time, @Param("id") Long id);
 
     /**
      * Obtiene la lista de citas asociadas a un veterinario específico,

@@ -16,11 +16,13 @@ import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.CreateMedicalProfileInitialRequest;
 import co.edu.uniquindio.backendpawsoft.dto.PetRequest;
 import co.edu.uniquindio.backendpawsoft.dto.PetResponse;
+import co.edu.uniquindio.backendpawsoft.enums.HospitalizationStatus;
 import co.edu.uniquindio.backendpawsoft.model.Pet;
 import co.edu.uniquindio.backendpawsoft.model.PetMedicalProfile;
 import co.edu.uniquindio.backendpawsoft.repository.AppointmentRepository;
 import co.edu.uniquindio.backendpawsoft.repository.PetMedicalProfileRepository;
 import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
+import co.edu.uniquindio.backendpawsoft.repository.HospitalizationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ public class PetService {
     private final PetRepository petRepository;
     private final AppointmentRepository appointmentRepository;
     private final PetMedicalProfileRepository petMedicalProfileRepository;
+    private final HospitalizationRepository hospitalizationRepository;
     private final AuditLogService auditLogService;
 
     public List<PetResponse> getByOwner(String email) {
@@ -149,6 +152,20 @@ public class PetService {
     }
 
     private PetResponse toResponse(Pet pet) {
+        // Verificar si la mascota está fallecida
+        Boolean isDeceased = hospitalizationRepository
+                .findByPetIdAndStatus(pet.getId(), HospitalizationStatus.DECEASED)
+                .stream()
+                .findAny()
+                .isPresent();
+
+        // Verificar si la mascota está hospitalizada (activa)
+        Boolean isHospitalized = hospitalizationRepository
+                .findByPetIdAndStatus(pet.getId(), HospitalizationStatus.ACTIVE)
+                .stream()
+                .findAny()
+                .isPresent();
+
         return PetResponse.builder()
                 .id(pet.getId())
                 .name(pet.getName())
@@ -158,6 +175,8 @@ public class PetService {
                 .sex(pet.getSex())
                 .ownerEmail(pet.getOwnerEmail())
                 .photoUrl(pet.getPhotoUrl())
+                .isDeceased(isDeceased)
+                .isHospitalized(isHospitalized)
                 .build();
     }
 }

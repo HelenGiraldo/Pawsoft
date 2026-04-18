@@ -28,4 +28,6 @@ public class AdminPetResponse {
     private String photoUrl;
     private String ownerName;
     private String ownerEmail;
+    private Boolean isDeceased;      // Indica si la mascota está fallecida
+    private Boolean isHospitalized;  // Indica si la mascota está hospitalizada
 }
