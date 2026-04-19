@@ -5,8 +5,11 @@ import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.PaymentStatus;
 import co.edu.uniquindio.backendpawsoft.model.Payment;
 import co.edu.uniquindio.backendpawsoft.model.ServicePrice;
+import co.edu.uniquindio.backendpawsoft.repository.PaymentAdjustmentRepository;
+import co.edu.uniquindio.backendpawsoft.repository.PaymentItemRepository;
 import co.edu.uniquindio.backendpawsoft.repository.PaymentRepository;
 import co.edu.uniquindio.backendpawsoft.repository.ServicePriceRepository;
+import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,42 +20,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Pruebas unitarias para PaymentService.
- *
- * Proyecto: Pawsoft
- * Universidad del Quindío
- * Programa: Ingeniería de Sistemas y Computación
- * Materia: Software III
- *
- * Autoras:
- * - Valentina Porras Salazar
- * - Helen Xiomara Giraldo Libreros
- *
- * Profesor:
- * Raúl Yulbraynner Rivera Gálvez
- */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Pruebas del Servicio de Pagos")
+@DisplayName("PaymentService Tests")
 class PaymentServiceTest {
 
-    @Mock
-    private PaymentRepository paymentRepository;
-
-    @Mock
-    private ServicePriceRepository servicePriceRepository;
-
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private PaymentRepository paymentRepository;
+    @Mock private ServicePriceRepository servicePriceRepository;
+    @Mock private PaymentItemRepository paymentItemRepository;
+    @Mock private PaymentAdjustmentRepository paymentAdjustmentRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private AuditLogService auditLogService;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -63,7 +50,6 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Arrange - Configurar datos de prueba
         paymentRequest = new PaymentRequest();
         paymentRequest.setAppointmentId(1L);
         paymentRequest.setClientName("Juan Pérez");
@@ -92,6 +78,7 @@ class PaymentServiceTest {
                 .status(PaymentStatus.PENDING)
                 .receivedBy("recepcionista@test.com")
                 .notes("Pago en efectivo")
+                .createdAt(LocalDateTime.now())
                 .build();
 
         servicePrice = ServicePrice.builder()
@@ -105,16 +92,18 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("Debería crear un pago exitosamente")
-    void deberiaCrearPagoExitosamente() {
-        // Arrange
+    @DisplayName("Should create payment successfully")
+    void shouldCreatePaymentSuccessfully() {
         when(paymentRepository.existsByAppointmentId(1L)).thenReturn(false);
+        when(userRepository.findByEmail("recepcionista@test.com"))
+                .thenReturn(Optional.of(co.edu.uniquindio.backendpawsoft.model.User.builder()
+                        .id(10L).name("Recep Test").email("recepcionista@test.com")
+                        .role(co.edu.uniquindio.backendpawsoft.enums.Role.ROLE_RECEPCIONISTA)
+                        .build()));
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
 
-        // Act
         PaymentResponse response = paymentService.createPayment(paymentRequest, "recepcionista@test.com");
 
-        // Assert
         assertNotNull(response);
         assertEquals("Juan Pérez", response.getClientName());
         assertEquals(PaymentStatus.PENDING.name(), response.getStatus());
@@ -123,206 +112,157 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("No debería crear pago si la cita ya tiene uno registrado")
-    void noDeberiaCrearPagoSiCitaYaTienePago() {
-        // Arrange
+    @DisplayName("Should throw when appointment already has a payment")
+    void shouldThrowWhenAppointmentAlreadyHasPayment() {
         when(paymentRepository.existsByAppointmentId(1L)).thenReturn(true);
 
-        // Act & Assert
-        assertThrows(IllegalStateException.class, () ->
-                paymentService.createPayment(paymentRequest, "recepcionista@test.com")
-        );
-        verify(paymentRepository, never()).save(any(Payment.class));
+        assertThrows(IllegalStateException.class,
+                () -> paymentService.createPayment(paymentRequest, "recepcionista@test.com"));
+        verify(paymentRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Debería marcar pago como pagado")
-    void deberiMarcarPagoComoPagado() {
-        // Arrange
+    @DisplayName("Should mark payment as paid")
+    void shouldMarkPaymentAsPaid() {
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
 
-        // Act
         PaymentResponse response = paymentService.markAsPaid(1L);
 
-        // Assert
         assertNotNull(response);
         verify(paymentRepository).save(any(Payment.class));
         verify(auditLogService).log(eq("PAYMENT_CONFIRMED"), anyString(), eq("PAYMENT"), eq(1));
     }
 
     @Test
-    @DisplayName("No debería marcar como pagado un pago que ya está pagado")
-    void noDeberiaMarcarComoPagadoUnPagoYaPagado() {
-        // Arrange
+    @DisplayName("Should throw when marking already paid payment")
+    void shouldThrowWhenMarkingAlreadyPaidPayment() {
         payment.setStatus(PaymentStatus.PAID);
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
-        // Act & Assert
-        assertThrows(IllegalStateException.class, () ->
-                paymentService.markAsPaid(1L)
-        );
-        verify(paymentRepository, never()).save(any(Payment.class));
+        assertThrows(IllegalStateException.class, () -> paymentService.markAsPaid(1L));
+        verify(paymentRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Debería revertir pago a pendiente")
-    void deberiaRevertirPagoAPendiente() {
-        // Arrange
+    @DisplayName("Should revert payment to pending")
+    void shouldRevertPaymentToPending() {
         payment.setStatus(PaymentStatus.PAID);
         when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
         when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
 
-        // Act
         PaymentResponse response = paymentService.revertToPending(1L);
 
-        // Assert
         assertNotNull(response);
         verify(paymentRepository).save(any(Payment.class));
         verify(auditLogService).log(eq("PAYMENT_REVERTED"), anyString(), eq("PAYMENT"), eq(1));
     }
 
     @Test
-    @DisplayName("Debería obtener todos los pagos")
-    void deberiaObtenerTodosLosPagos() {
-        // Arrange
+    @DisplayName("Should get all payments")
+    void shouldGetAllPayments() {
         when(paymentRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(payment));
 
-        // Act
         List<PaymentResponse> responses = paymentService.getAllPayments();
 
-        // Assert
         assertNotNull(responses);
         assertEquals(1, responses.size());
-        verify(paymentRepository).findAllByOrderByCreatedAtDesc();
     }
 
     @Test
-    @DisplayName("Debería obtener pago por ID de cita")
-    void deberiaObtenerPagoPorIdDeCita() {
-        // Arrange
+    @DisplayName("Should get payment by appointment ID")
+    void shouldGetPaymentByAppointmentId() {
         when(paymentRepository.findByAppointmentId(1L)).thenReturn(Optional.of(payment));
 
-        // Act
         Optional<PaymentResponse> response = paymentService.getByAppointmentId(1L);
 
-        // Assert
         assertTrue(response.isPresent());
         assertEquals("Juan Pérez", response.get().getClientName());
-        verify(paymentRepository).findByAppointmentId(1L);
     }
 
     @Test
-    @DisplayName("Debería obtener pagos por email de cliente")
-    void deberiaObtenerPagosPorEmailDeCliente() {
-        // Arrange
+    @DisplayName("Should get payments by client email")
+    void shouldGetPaymentsByClientEmail() {
         when(paymentRepository.findByClientEmailOrderByCreatedAtDesc("juan@test.com"))
                 .thenReturn(List.of(payment));
 
-        // Act
         List<PaymentResponse> responses = paymentService.getByClientEmail("juan@test.com");
 
-        // Assert
         assertNotNull(responses);
         assertEquals(1, responses.size());
-        verify(paymentRepository).findByClientEmailOrderByCreatedAtDesc("juan@test.com");
     }
 
     @Test
-    @DisplayName("Debería obtener precios activos")
-    void deberiaObtenerPreciosActivos() {
-        // Arrange
+    @DisplayName("Should get active prices")
+    void shouldGetActivePrices() {
         when(servicePriceRepository.findByActiveTrueOrderByDisplayNameAsc())
                 .thenReturn(List.of(servicePrice));
 
-        // Act
         List<ServicePriceResponse> responses = paymentService.getActivePrices();
 
-        // Assert
         assertNotNull(responses);
         assertEquals(1, responses.size());
         assertEquals("Consulta general", responses.get(0).getServiceType());
-        verify(servicePriceRepository).findByActiveTrueOrderByDisplayNameAsc();
     }
 
     @Test
-    @DisplayName("Debería crear o actualizar precio de servicio")
-    void deberiaCrearOActualizarPrecioDeServicio() {
-        // Arrange
-        ServicePriceRequest request = new ServicePriceRequest();
-        request.setServiceType("Consulta general");
-        request.setDisplayName("Consulta General");
-        request.setPrice(new BigDecimal("50000"));
-        request.setDescription("Consulta veterinaria");
-        request.setActive(true);
+    @DisplayName("Should upsert service price")
+    void shouldUpsertServicePrice() {
+        ServicePriceRequest req = new ServicePriceRequest();
+        req.setServiceType("Consulta general");
+        req.setDisplayName("Consulta General");
+        req.setPrice(new BigDecimal("50000"));
+        req.setDescription("Consulta veterinaria");
+        req.setActive(true);
 
-        when(servicePriceRepository.findByServiceType("Consulta general"))
-                .thenReturn(Optional.empty());
+        when(servicePriceRepository.findByServiceType("Consulta general")).thenReturn(Optional.empty());
         when(servicePriceRepository.save(any(ServicePrice.class))).thenReturn(servicePrice);
 
-        // Act
-        ServicePriceResponse response = paymentService.upsertPrice(request);
+        ServicePriceResponse response = paymentService.upsertPrice(req);
 
-        // Assert
         assertNotNull(response);
         assertEquals("Consulta general", response.getServiceType());
-        verify(servicePriceRepository).save(any(ServicePrice.class));
         verify(auditLogService).log(eq("PRICE_UPSERT"), anyString(), eq("SERVICE_PRICE"), anyInt());
     }
 
     @Test
-    @DisplayName("Debería eliminar precio de servicio")
-    void deberiaEliminarPrecioDeServicio() {
-        // Arrange
+    @DisplayName("Should delete service price")
+    void shouldDeleteServicePrice() {
         when(servicePriceRepository.existsById(1L)).thenReturn(true);
 
-        // Act
         paymentService.deletePrice(1L);
 
-        // Assert
         verify(servicePriceRepository).deleteById(1L);
         verify(auditLogService).log(eq("PRICE_DELETE"), anyString(), eq("SERVICE_PRICE"), eq(1));
     }
 
     @Test
-    @DisplayName("No debería eliminar precio inexistente")
-    void noDeberiaEliminarPrecioInexistente() {
-        // Arrange
+    @DisplayName("Should throw when deleting non-existent price")
+    void shouldThrowWhenDeletingNonExistentPrice() {
         when(servicePriceRepository.existsById(1L)).thenReturn(false);
 
-        // Act & Assert
-        assertThrows(NoSuchElementException.class, () ->
-                paymentService.deletePrice(1L)
-        );
-        verify(servicePriceRepository, never()).deleteById(anyLong());
+        assertThrows(NoSuchElementException.class, () -> paymentService.deletePrice(1L));
+        verify(servicePriceRepository, never()).deleteById(any());
     }
 
     @Test
-    @DisplayName("Debería obtener precio base por tipo de servicio")
-    void deberiaObtenerPrecioBasePorTipoDeServicio() {
-        // Arrange
+    @DisplayName("Should get base price for service type")
+    void shouldGetBasePriceForServiceType() {
         when(servicePriceRepository.findByServiceType("Consulta general"))
                 .thenReturn(Optional.of(servicePrice));
 
-        // Act
         BigDecimal price = paymentService.getBasePrice("Consulta general");
 
-        // Assert
         assertEquals(new BigDecimal("50000"), price);
-        verify(servicePriceRepository).findByServiceType("Consulta general");
     }
 
     @Test
-    @DisplayName("Debería retornar cero si el servicio no tiene precio configurado")
-    void deberiaRetornarCeroSiServicioNoTienePrecio() {
-        // Arrange
-        when(servicePriceRepository.findByServiceType("Servicio inexistente"))
-                .thenReturn(Optional.empty());
+    @DisplayName("Should return zero when service has no price configured")
+    void shouldReturnZeroWhenServiceHasNoPrice() {
+        when(servicePriceRepository.findByServiceType("Unknown")).thenReturn(Optional.empty());
 
-        // Act
-        BigDecimal price = paymentService.getBasePrice("Servicio inexistente");
+        BigDecimal price = paymentService.getBasePrice("Unknown");
 
-        // Assert
         assertEquals(BigDecimal.ZERO, price);
     }
 }

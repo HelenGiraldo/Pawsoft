@@ -1,8 +1,14 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
-import co.edu.uniquindio.backendpawsoft.dto.ChatbotRequest;
-import co.edu.uniquindio.backendpawsoft.dto.ChatbotResponse;
+import co.edu.uniquindio.backendpawsoft.dto.ChatRequest;
+import co.edu.uniquindio.backendpawsoft.dto.ChatResponse;
+import co.edu.uniquindio.backendpawsoft.dto.MessageHistory;
+import co.edu.uniquindio.backendpawsoft.dto.MedicalFormSuggestionRequest;
+import co.edu.uniquindio.backendpawsoft.dto.MedicalFormSuggestionResponse;
+import co.edu.uniquindio.backendpawsoft.controller.ChatbotController;
+import co.edu.uniquindio.backendpawsoft.exception.UnauthorizedException;
 import co.edu.uniquindio.backendpawsoft.model.User;
+import co.edu.uniquindio.backendpawsoft.service.SystemPromptGenerator;
 import co.edu.uniquindio.backendpawsoft.utils.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,310 +17,204 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ChatbotService Tests")
+@DisplayName("ChatbotController Tests")
 class ChatbotServiceTest {
 
-    @Mock
-    private RestTemplate restTemplate;
-
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private RestTemplate restTemplate;
+    @Mock private SystemPromptGenerator systemPromptGenerator;
 
     @InjectMocks
-    private ChatbotService chatbotService;
+    private ChatbotController chatbotController;
 
     private User testUser;
-    private ChatbotRequest chatbotRequest;
+    private Authentication authentication;
 
     @BeforeEach
     void setUp() {
         testUser = TestDataBuilder.buildTestUser();
-        chatbotRequest = ChatbotRequest.builder()
-                .message("¿Cuáles son los síntomas de la gripe en perros?")
-                .userId(testUser.getId())
-                .build();
 
-        // Set chatbot API properties using reflection
-        ReflectionTestUtils.setField(chatbotService, "chatbotApiUrl", "https://api.chatbot.com/v1/chat");
-        ReflectionTestUtils.setField(chatbotService, "chatbotApiKey", "test-api-key");
+        ReflectionTestUtils.setField(chatbotController, "apiKey", "test-api-key");
+        ReflectionTestUtils.setField(chatbotController, "apiUrl", "https://api.groq.com/v1/chat");
+
+        authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn(testUser);
+        when(authentication.getAuthorities()).thenAnswer(inv ->
+                List.of((org.springframework.security.core.GrantedAuthority) () -> "ROLE_CLIENTE"));
+    }
+
+    // ── chat ──────────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Should return successful chat response")
+    void shouldReturnSuccessfulChatResponse() {
+        ChatRequest request = new ChatRequest();
+        request.setMessage("¿Cómo cuidar a un perro?");
+        request.setHistory(List.of());
+
+        when(systemPromptGenerator.generateSystemPrompt("ROLE_CLIENTE")).thenReturn("System prompt");
+
+        Map<String, Object> groqResponse = buildGroqResponse("Los perros necesitan cuidados básicos.");
+        when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(groqResponse));
+
+        ResponseEntity<ChatResponse> result = chatbotController.chat(request, authentication);
+
+        assertEquals(200, result.getStatusCode().value());
+        assertNotNull(result.getBody());
+        assertTrue(result.getBody().isSuccess());
+        assertEquals("Los perros necesitan cuidados básicos.", result.getBody().getReply());
     }
 
     @Test
-    @DisplayName("Should successfully process chatbot request")
-    void shouldProcessChatbotRequest() {
-        // Given
-        String mockApiResponse = "Los síntomas de la gripe en perros incluyen fiebre, tos, letargo y pérdida de apetito. Es importante consultar con un veterinario para un diagnóstico adecuado.";
-        
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenReturn(mockApiResponse);
+    @DisplayName("Should return 401 when authentication is null")
+    void shouldReturn401WhenAuthenticationIsNull() {
+        ChatRequest request = new ChatRequest();
+        request.setMessage("Hola");
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
+        ResponseEntity<ChatResponse> result = chatbotController.chat(request, null);
 
-        // Then
-        assertNotNull(response);
-        assertEquals(mockApiResponse, response.getMessage());
-        assertEquals("success", response.getStatus());
-        assertNotNull(response.getTimestamp());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-        verify(auditLogService).logChatbotInteraction(testUser.getId(), chatbotRequest.getMessage(), mockApiResponse);
+        assertEquals(401, result.getStatusCode().value());
+        assertFalse(result.getBody().isSuccess());
     }
 
     @Test
-    @DisplayName("Should handle API error gracefully")
-    void shouldHandleApiErrorGracefully() {
-        // Given
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenThrow(new RuntimeException("API connection failed"));
+    @DisplayName("Should return 401 when not authenticated")
+    void shouldReturn401WhenNotAuthenticated() {
+        Authentication unauthenticated = mock(Authentication.class);
+        when(unauthenticated.isAuthenticated()).thenReturn(false);
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
+        ChatRequest request = new ChatRequest();
+        request.setMessage("Hola");
 
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("Lo siento"));
-        assertEquals("error", response.getStatus());
-        assertNotNull(response.getTimestamp());
+        ResponseEntity<ChatResponse> result = chatbotController.chat(request, unauthenticated);
 
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-        verify(auditLogService).logChatbotError(testUser.getId(), chatbotRequest.getMessage(), "API connection failed");
+        assertEquals(401, result.getStatusCode().value());
     }
 
     @Test
-    @DisplayName("Should handle empty message")
-    void shouldHandleEmptyMessage() {
-        // Given
-        chatbotRequest.setMessage("");
+    @DisplayName("Should return 500 when Groq API fails")
+    void shouldReturn500WhenGroqApiFails() {
+        ChatRequest request = new ChatRequest();
+        request.setMessage("Hola");
+        request.setHistory(List.of());
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
+        when(systemPromptGenerator.generateSystemPrompt(anyString())).thenReturn("System prompt");
+        when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                .thenThrow(new RuntimeException("Connection refused"));
 
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("Por favor"));
-        assertEquals("error", response.getStatus());
+        ResponseEntity<ChatResponse> result = chatbotController.chat(request, authentication);
 
-        verifyNoInteractions(restTemplate);
+        assertEquals(500, result.getStatusCode().value());
+        assertFalse(result.getBody().isSuccess());
     }
 
     @Test
-    @DisplayName("Should handle null message")
-    void shouldHandleNullMessage() {
-        // Given
-        chatbotRequest.setMessage(null);
+    @DisplayName("Should include history in request to Groq")
+    void shouldIncludeHistoryInRequestToGroq() {
+        MessageHistory historyMsg = new MessageHistory();
+        historyMsg.setRole("user");
+        historyMsg.setText("Mensaje anterior");
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
+        ChatRequest request = new ChatRequest();
+        request.setMessage("Nuevo mensaje");
+        request.setHistory(List.of(historyMsg));
 
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("Por favor"));
-        assertEquals("error", response.getStatus());
+        when(systemPromptGenerator.generateSystemPrompt(anyString())).thenReturn("System prompt");
 
-        verifyNoInteractions(restTemplate);
+        Map<String, Object> groqResponse = buildGroqResponse("Respuesta");
+        when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(groqResponse));
+
+        ResponseEntity<ChatResponse> result = chatbotController.chat(request, authentication);
+
+        assertEquals(200, result.getStatusCode().value());
+        verify(restTemplate).postForEntity(anyString(), any(), eq(Map.class));
+    }
+
+    // ── getMedicalFormSuggestions ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Should return medical suggestions for veterinarian")
+    void shouldReturnMedicalSuggestionsForVeterinarian() {
+        User vetUser = TestDataBuilder.buildTestVet();
+        Authentication vetAuth = mock(Authentication.class);
+        when(vetAuth.isAuthenticated()).thenReturn(true);
+        when(vetAuth.getPrincipal()).thenReturn(vetUser);
+        when(vetAuth.getAuthorities()).thenAnswer(inv ->
+                List.of((org.springframework.security.core.GrantedAuthority) () -> "ROLE_VETERINARIO"));
+
+        MedicalFormSuggestionRequest request = new MedicalFormSuggestionRequest();
+        request.setSymptoms("fiebre, tos");
+        request.setAnimalType("Perro");
+
+        when(systemPromptGenerator.generateSystemPrompt("ROLE_VETERINARIO")).thenReturn("Vet prompt");
+
+        Map<String, Object> groqResponse = buildGroqResponse(
+                "🔍 DIAGNÓSTICO SUGERIDO:\nGripe canina\n\n" +
+                "🔍 DIAGNÓSTICOS DIFERENCIALES:\n- Moquillo\n\n" +
+                "💊 TRATAMIENTO RECOMENDADO:\nReposo\n\n" +
+                "💊 MEDICAMENTOS:\n- Ibuprofeno\n\n" +
+                "🧪 EXÁMENES COMPLEMENTARIOS:\n- Hemograma\n\n" +
+                "📋 PRONÓSTICO:\nFavorable\n\n" +
+                "🏠 RECOMENDACIONES AL PROPIETARIO:\n- Mantener hidratado"
+        );
+        when(restTemplate.postForEntity(anyString(), any(), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(groqResponse));
+
+        ResponseEntity<MedicalFormSuggestionResponse> result =
+                chatbotController.getMedicalFormSuggestions(request, vetAuth);
+
+        assertEquals(200, result.getStatusCode().value());
+        assertTrue(result.getBody().isSuccess());
     }
 
     @Test
-    @DisplayName("Should handle very long message")
-    void shouldHandleVeryLongMessage() {
-        // Given
-        String longMessage = "a".repeat(2000); // Very long message
-        chatbotRequest.setMessage(longMessage);
+    @DisplayName("Should return 401 when non-vet tries to access medical suggestions")
+    void shouldReturn401WhenNonVetAccessesMedicalSuggestions() {
+        MedicalFormSuggestionRequest request = new MedicalFormSuggestionRequest();
+        request.setSymptoms("fiebre");
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
+        // testUser is ROLE_CLIENTE
+        ResponseEntity<MedicalFormSuggestionResponse> result =
+                chatbotController.getMedicalFormSuggestions(request, authentication);
 
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("demasiado largo"));
-        assertEquals("error", response.getStatus());
-
-        verifyNoInteractions(restTemplate);
+        assertEquals(401, result.getStatusCode().value());
+        assertFalse(result.getBody().isSuccess());
     }
 
     @Test
-    @DisplayName("Should process veterinary question correctly")
-    void shouldProcessVeterinaryQuestionCorrectly() {
-        // Given
-        chatbotRequest.setMessage("¿Qué vacunas necesita un cachorro?");
-        String mockApiResponse = "Los cachorros necesitan vacunas contra el moquillo, hepatitis, parvovirus, parainfluenza y rabia. El calendario de vacunación debe ser establecido por un veterinario.";
-        
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenReturn(mockApiResponse);
+    @DisplayName("Should return 401 when authentication is null for medical suggestions")
+    void shouldReturn401WhenAuthNullForMedicalSuggestions() {
+        MedicalFormSuggestionRequest request = new MedicalFormSuggestionRequest();
+        request.setSymptoms("fiebre");
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
+        ResponseEntity<MedicalFormSuggestionResponse> result =
+                chatbotController.getMedicalFormSuggestions(request, null);
 
-        // Then
-        assertNotNull(response);
-        assertEquals(mockApiResponse, response.getMessage());
-        assertEquals("success", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-        verify(auditLogService).logChatbotInteraction(testUser.getId(), chatbotRequest.getMessage(), mockApiResponse);
+        assertEquals(401, result.getStatusCode().value());
     }
 
-    @Test
-    @DisplayName("Should process appointment question correctly")
-    void shouldProcessAppointmentQuestionCorrectly() {
-        // Given
-        chatbotRequest.setMessage("¿Cómo puedo agendar una cita?");
-        String mockApiResponse = "Para agendar una cita, puedes usar nuestro sistema en línea o llamar directamente a la clínica. Necesitarás proporcionar información sobre tu mascota y el motivo de la consulta.";
-        
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenReturn(mockApiResponse);
+    // ── helpers ───────────────────────────────────────────────────────────────
 
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(mockApiResponse, response.getMessage());
-        assertEquals("success", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-    }
-
-    @Test
-    @DisplayName("Should handle inappropriate content")
-    void shouldHandleInappropriateContent() {
-        // Given
-        chatbotRequest.setMessage("contenido inapropiado");
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("veterinaria"));
-        assertEquals("filtered", response.getStatus());
-
-        verifyNoInteractions(restTemplate);
-    }
-
-    @Test
-    @DisplayName("Should provide emergency guidance")
-    void shouldProvideEmergencyGuidance() {
-        // Given
-        chatbotRequest.setMessage("Mi perro está vomitando sangre, ¿qué hago?");
-        String mockApiResponse = "Esta es una emergencia veterinaria. Debes llevar a tu perro inmediatamente al veterinario más cercano o a una clínica de emergencias. No esperes.";
-        
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenReturn(mockApiResponse);
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(mockApiResponse, response.getMessage());
-        assertEquals("emergency", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-        verify(auditLogService).logChatbotEmergency(testUser.getId(), chatbotRequest.getMessage());
-    }
-
-    @Test
-    @DisplayName("Should handle API timeout")
-    void shouldHandleApiTimeout() {
-        // Given
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenThrow(new RuntimeException("Read timed out"));
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("tiempo de espera"));
-        assertEquals("timeout", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-    }
-
-    @Test
-    @DisplayName("Should validate user exists")
-    void shouldValidateUserExists() {
-        // Given
-        chatbotRequest.setUserId(null);
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("usuario"));
-        assertEquals("error", response.getStatus());
-
-        verifyNoInteractions(restTemplate);
-    }
-
-    @Test
-    @DisplayName("Should provide general pet care information")
-    void shouldProvideGeneralPetCareInformation() {
-        // Given
-        chatbotRequest.setMessage("¿Cómo cuidar a un gato?");
-        String mockApiResponse = "El cuidado de un gato incluye alimentación balanceada, agua fresca, caja de arena limpia, ejercicio, cepillado regular y visitas veterinarias periódicas.";
-        
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenReturn(mockApiResponse);
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(mockApiResponse, response.getMessage());
-        assertEquals("success", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-    }
-
-    @Test
-    @DisplayName("Should handle rate limiting")
-    void shouldHandleRateLimiting() {
-        // Given
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenThrow(new RuntimeException("Rate limit exceeded"));
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertTrue(response.getMessage().contains("muchas consultas"));
-        assertEquals("rate_limited", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
-    }
-
-    @Test
-    @DisplayName("Should provide context-aware responses")
-    void shouldProvideContextAwareResponses() {
-        // Given
-        chatbotRequest.setMessage("¿Cuánto cuesta una consulta?");
-        String mockApiResponse = "Los precios de las consultas varían según el tipo de servicio. Te recomendamos contactar directamente con la clínica para obtener información actualizada sobre tarifas.";
-        
-        when(restTemplate.postForObject(anyString(), any(), eq(String.class)))
-                .thenReturn(mockApiResponse);
-
-        // When
-        ChatbotResponse response = chatbotService.processMessage(chatbotRequest);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(mockApiResponse, response.getMessage());
-        assertEquals("success", response.getStatus());
-
-        verify(restTemplate).postForObject(anyString(), any(), eq(String.class));
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildGroqResponse(String content) {
+        Map<String, String> message = Map.of("content", content);
+        Map<String, Object> choice = Map.of("message", message);
+        return Map.of("choices", List.of(choice));
     }
 }

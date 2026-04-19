@@ -4,7 +4,255 @@ Registro de cambios, correcciones y mejoras del sistema.
 
 ---
 
-## [2026-04-16] - 16 de abril de 2026
+## [2026-04-19] - 19 de abril de 2026
+
+### Correcciones y Mejoras
+
+#### Fix: Tests del Frontend (Angular/Jasmine)
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Todos los tests del frontend fallaban por estar desalineados con el código real.  
+**Solución:** Reescritos completamente los 9 archivos de test para que coincidan con las APIs reales de los servicios y componentes.
+
+**Archivos modificados:**
+- `app.component.spec.ts`
+- `chatbot-fab.component.spec.ts`
+- `login.page.spec.ts`
+- `register.page.spec.ts`
+- `appointment.service.spec.ts`
+- `auth.service.spec.ts` (renombrado de `auth.spec.ts`)
+- `chatbot.service.spec.ts`
+- `pet.service.spec.ts`
+- `token-refresh.interceptor.spec.ts`
+
+**Resultado:** 95/95 tests pasando.
+
+---
+
+#### Fix: Tests del Backend (Spring Boot/JUnit)
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Tests del backend fallaban por `@MockBean` removido en Spring Boot 4.x, `TestDataBuilder` con campos incorrectos, y tests usando APIs inventadas.  
+**Solución:**
+- `@MockBean` → `@MockitoBean` (Spring Boot 4.x)
+- `@AutoConfigureMockMvc` → `MockMvcBuilders.webAppContextSetup()` manual
+- Reescritos `TestDataBuilder`, `AuthServiceTest`, `UserServiceTest`, `TwoFactorServiceTest`, `ChatbotServiceTest`, `AppointmentServiceTest`, `EmailServiceTest`, `MedicalRecordServiceTest`, `PetServiceTest`, `ProfileServiceTest`, `RecaptchaServiceTest`, `JwtServiceTest`
+- Corregido `application-test.properties` con claves correctas (`recaptcha.secret`, `jwt.refresh.expiration`)
+
+**Archivos modificados:**
+- `src/test/java/...` (12 archivos de test)
+- `src/test/resources/application-test.properties`
+
+---
+
+#### Fix: Botón "Descargar PDF" fuera del recuadro
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** El botón "Descargar PDF" se salía del recuadro en historial clínico (cliente y veterinario).  
+**Causa:** `height: 140px` fijo en `.pdf-item-cliente` y `.pdf-item-historial`.  
+**Solución:** Eliminado el `height` fijo para que la tarjeta crezca con su contenido.
+
+**Archivos modificados:**
+- `mis-citas.component.scss`
+- `historial-clinico.component.scss`
+
+---
+
+#### Fix: Mascotas hospitalizadas aparecían en selector de citas (Recepcionista)
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Al crear una cita desde recepcionista, las mascotas hospitalizadas aparecían como seleccionables.  
+**Solución:**
+- Tarjetas de mascotas hospitalizadas deshabilitadas visualmente (opacidad, borde naranja punteado)
+- Badge "🏥 Hospitalizada" visible
+- `selectPet()` ignora mascotas con `isHospitalized === true`
+
+**Archivos modificados:**
+- `dashboard-rec.component.html`
+- `dashboard-rec.component.ts`
+- `dashboard-rec.component.scss`
+
+---
+
+#### Fix: Autocompletado IA agregaba medicamentos no existentes en catálogo
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** La IA sugería medicamentos que no estaban en el catálogo, quedando vacíos al agregarse.  
+**Solución:** `aplicarMedicamentosSugeridos()` ahora filtra los medicamentos sugeridos contra `catalogoMedicamentos` y solo agrega los que existen, evitando duplicados.
+
+**Archivos modificados:**
+- `formulario-consulta.component.ts`
+
+---
+
+#### Fix: Alineación de columnas en tabla de medicamentos
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Al agregar precio a un medicamento, los campos Dosis/Unidad/Vía se desalineaban.  
+**Causa:** `align-items: end` en `.med-fields` hacía que el badge de precio empujara el select hacia arriba.  
+**Solución:** Cambiado a `align-items: start` y ajustado `align-self` del botón eliminar.
+
+**Archivos modificados:**
+- `formulario-consulta.component.scss`
+
+---
+
+#### Fix: Mensaje de error genérico al cerrar atención
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Al intentar cerrar atención con campos incompletos, el mensaje era genérico.  
+**Solución:** El mensaje ahora lista exactamente qué campos faltan, con `white-space: pre-line` para mostrar la lista correctamente.
+
+**Archivos modificados:**
+- `formulario-consulta.component.ts`
+- `formulario-consulta.component.html`
+
+---
+
+#### Fix: Botón "Cobrar" aparecía en tabs de Pagos y Todas las Citas
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** El botón "💳 Cobrar" aparecía en las tabs de Pagos y Todas las Citas de recepcionista.  
+**Solución:** Botón eliminado de esas dos tabs. Solo permanece en la tab Inicio.
+
+**Archivos modificados:**
+- `dashboard-rec.component.html`
+
+---
+
+#### Fix: Pago creado desde Inicio quedaba en estado PENDING
+**Tipo:** Mantenimiento Correctivo  
+**Problema:** Al cobrar desde la tab Inicio, el pago se creaba en PENDING y requería un segundo clic en Pagos.  
+**Solución:** `savePayment()` ahora encadena `createPayment()` → `markAsPaid()` automáticamente.
+
+**Archivos modificados:**
+- `dashboard-rec.component.ts`
+
+---
+
+### Nuevas Funcionalidades
+
+#### Chatbot de Autenticación (Páginas Públicas)
+**Tipo:** Mantenimiento Evolutivo  
+**Funcionalidad:** Chatbot restringido disponible en login, registro y recuperar contraseña. Solo responde preguntas relacionadas con el proceso de autenticación de PawSoft.
+
+**Implementación:**
+- Nuevo componente `AuthChatbotComponent` con `@Input() context` para adaptar el system prompt
+- System prompts estrictos por contexto: `login`, `register`, `forgot-password`
+- Nuevo endpoint público `POST /api/chatbot/public-chat` (sin JWT)
+- Ruta agregada como pública en `SecurityConfig`
+- Componente montado en `app.component.html` al nivel de `ion-app` para que `position: fixed` funcione correctamente
+- Mismo diseño visual que el chatbot existente
+
+**Archivos creados:**
+- `auth-chatbot.component.ts`
+- `auth-chatbot.component.html`
+- `auth-chatbot.component.scss`
+
+**Archivos modificados:**
+- `ChatbotController.java`
+- `SecurityConfig.java`
+- `app.component.ts`
+- `app.component.html`
+
+---
+
+#### Directiva `autoResize` para Textareas
+**Tipo:** Mantenimiento Evolutivo  
+**Funcionalidad:** Los campos de texto del formulario de consulta crecen automáticamente según el contenido, sin barra de scroll y sin necesidad de recargar la página.
+
+**Archivos creados:**
+- `auto-resize.directive.ts`
+
+**Archivos modificados:**
+- `formulario-consulta.component.html` (12 textareas)
+- `formulario-consulta.component.ts`
+- `formulario-consulta.component.scss`
+
+---
+
+### Reglas de Negocio
+
+#### Regla: Cancelación de citas con mínimo 24 horas de anticipación
+**Tipo:** Mantenimiento Evolutivo  
+**Descripción:** Clientes y recepcionistas solo pueden cancelar citas con más de 24 horas de anticipación. Si faltan menos de 24 horas, el botón Cancelar desaparece y el backend rechaza la solicitud.
+
+**Backend:**
+- `cancelAppointment()`: reemplazada validación de "fecha pasada" por cálculo de `Duration.between(ahora, citaDateTime).toHours() < 24`
+- `recepCancelAppointment()`: misma validación aplicada
+
+**Frontend:**
+- Nuevo método `puedeCancel()` en `mis-citas.component.ts` y `dashboard-rec.component.ts`
+- Botón Cancelar usa `*ngIf="puedeCancel(c)"` en lugar de `*ngIf="c.status === 'upcoming'"`
+- Indicador visual "🔒 Sin cancelación" cuando faltan menos de 24h (cliente)
+
+**Archivos modificados:**
+- `AppointmentService.java`
+- `mis-citas.component.ts`
+- `mis-citas.component.html`
+- `dashboard-rec.component.ts`
+- `dashboard-rec.component.html`
+
+---
+
+### Mejoras de UI/UX
+
+#### Mejora: Colores de texto en botones
+**Tipo:** Mantenimiento Correctivo  
+**Descripción:** Botones con fondo verde oscuro mostraban texto negro. Agregado `--color: #ffffff` a los botones "Validar" (OTP), "Continuar" (forgot-password) y botones de autenticación.
+
+**Archivos modificados:**
+- `otp-modal.component.scss`
+- `forgot-password.page.scss`
+
+---
+
+#### Mejora: Scroll en página de Login
+**Tipo:** Mantenimiento Correctivo  
+**Descripción:** La página de login no tenía scroll, cortando el contenido en pantallas pequeñas. Eliminado `[scrollY]="false"` y `overflow: hidden`.
+
+**Archivos modificados:**
+- `login.page.html`
+- `login.page.scss`
+
+---
+
+#### Mejora: Límites longitudinales en campos de formularios
+**Tipo:** Mantenimiento Evolutivo  
+**Descripción:** Agregados `maxlength` coherentes a todos los campos de texto sin límite.
+
+| Campo | Límite |
+|---|---|
+| Email (login, register, forgot-password) | 100 |
+| Contraseña (login, register) | 50 |
+| Nombre (mascota, cliente, recepcionista) | 50 |
+| Raza (mascota, cliente, recepcionista) | 50 |
+| Tipo de sangre | 20 |
+| Alergias, condiciones, medicamentos | 300 |
+| Notas adicionales | 500 |
+
+**Archivos modificados:**
+- `login.page.html`
+- `register.page.html`
+- `forgot-password.page.html`
+- `pet.component.html`
+- `dashboard-rec.component.html`
+
+---
+
+#### Mejora: Asteriscos en campos obligatorios
+**Tipo:** Mantenimiento Evolutivo  
+**Descripción:** Todos los campos obligatorios de los formularios de autenticación ahora muestran `*` en rojo.
+
+**Archivos modificados:**
+- `login.page.html`
+- `register.page.html`
+- `forgot-password.page.html`
+
+---
+
+#### Mejora: Nota de costos eliminada del historial del veterinario
+**Tipo:** Mantenimiento Correctivo  
+**Descripción:** Eliminado el mensaje "ℹ️ Los costos mostrados son los originales..." del historial clínico del veterinario, ya que no es relevante para ese rol.
+
+**Archivos modificados:**
+- `historial-clinico.component.html`
+
+---
+
+
 
 ### Mejoras de Integridad de Datos
 

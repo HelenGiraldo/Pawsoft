@@ -327,4 +327,37 @@ public class ChatbotController {
         
         return items;
     }
+
+    /**
+     * Endpoint público para el chatbot de autenticación.
+     * No requiere JWT. Recibe el body ya formateado para Groq (con system prompt incluido)
+     * y lo reenvía directamente. El system prompt restrictivo viene del frontend.
+     */
+    @PostMapping("/public-chat")
+    public ResponseEntity<ChatResponse> publicChat(@RequestBody Map<String, Object> groqBody) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(groqBody, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, entity, Map.class);
+
+            List<Map> choices = (List<Map>) response.getBody().get("choices");
+            Map message = (Map) choices.get(0).get("message");
+            String replyText = (String) message.get("content");
+
+            ChatResponse chatResponse = new ChatResponse();
+            chatResponse.setReply(replyText);
+            chatResponse.setSuccess(true);
+            return ResponseEntity.ok(chatResponse);
+
+        } catch (Exception e) {
+            log.error("[PUBLIC_CHATBOT] error={}", e.getMessage());
+            ChatResponse errorResponse = new ChatResponse();
+            errorResponse.setReply("Lo siento, no pude procesar tu consulta. Intenta más tarde.");
+            errorResponse.setSuccess(false);
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
 }

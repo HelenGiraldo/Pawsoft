@@ -16,23 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Pruebas unitarias para RecaptchaService.
- *
- * Proyecto: Pawsoft
- * Universidad del Quindío
- * Programa: Ingeniería de Sistemas y Computación
- * Materia: Software III
- *
- * Autoras:
- * - Valentina Porras Salazar
- * - Helen Xiomara Giraldo Libreros
- *
- * Profesor:
- * Raúl Yulbraynner Rivera Gálvez
- */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Pruebas del Servicio de reCAPTCHA")
+@DisplayName("RecaptchaService Tests")
 class RecaptchaServiceTest {
 
     @Mock
@@ -48,100 +33,60 @@ class RecaptchaServiceTest {
     }
 
     @Test
-    @DisplayName("Debería validar token exitosamente")
-    void deberiaValidarTokenExitosamente() {
-        // Arrange
-        String token = "valid-token";
-        Map<String, Object> response = Map.of("success", true);
-        
+    @DisplayName("Should return true for valid token")
+    void shouldReturnTrueForValidToken() {
         when(restTemplate.postForObject(anyString(), isNull(), eq(Map.class)))
-                .thenReturn(response);
+                .thenReturn(Map.of("success", true));
 
-        // Act
-        boolean result = recaptchaService.isValid(token);
-
-        // Assert
-        assertTrue(result);
+        assertTrue(recaptchaService.isValid("valid-token"));
         verify(restTemplate).postForObject(anyString(), isNull(), eq(Map.class));
     }
 
     @Test
-    @DisplayName("Debería retornar false si el token es inválido")
-    void deberiaRetornarFalseSiTokenEsInvalido() {
-        // Arrange
-        String token = "invalid-token";
-        Map<String, Object> response = Map.of("success", false);
-        
+    @DisplayName("Should return false for invalid token")
+    void shouldReturnFalseForInvalidToken() {
         when(restTemplate.postForObject(anyString(), isNull(), eq(Map.class)))
-                .thenReturn(response);
+                .thenReturn(Map.of("success", false));
 
-        // Act
-        boolean result = recaptchaService.isValid(token);
-
-        // Assert
-        assertFalse(result);
+        assertFalse(recaptchaService.isValid("invalid-token"));
     }
 
     @Test
-    @DisplayName("Debería retornar false si el token es null")
-    void deberiaRetornarFalseSiTokenEsNull() {
-        // Act
-        boolean result = recaptchaService.isValid(null);
-
-        // Assert
-        assertFalse(result);
-        verify(restTemplate, never()).postForObject(anyString(), any(), any());
+    @DisplayName("Should return false for null token")
+    void shouldReturnFalseForNullToken() {
+        assertFalse(recaptchaService.isValid(null));
+        verifyNoInteractions(restTemplate);
     }
 
     @Test
-    @DisplayName("Debería retornar false si el token está vacío")
-    void deberiaRetornarFalseSiTokenEstaVacio() {
-        // Act
-        boolean result = recaptchaService.isValid("");
-
-        // Assert
-        assertFalse(result);
-        verify(restTemplate, never()).postForObject(anyString(), any(), any());
+    @DisplayName("Should return false for empty token")
+    void shouldReturnFalseForEmptyToken() {
+        assertFalse(recaptchaService.isValid(""));
+        verifyNoInteractions(restTemplate);
     }
 
     @Test
-    @DisplayName("Debería retornar false si el token está en blanco")
-    void deberiaRetornarFalseSiTokenEstaEnBlanco() {
-        // Act
-        boolean result = recaptchaService.isValid("   ");
-
-        // Assert
-        assertFalse(result);
-        verify(restTemplate, never()).postForObject(anyString(), any(), any());
+    @DisplayName("Should return false for blank token")
+    void shouldReturnFalseForBlankToken() {
+        assertFalse(recaptchaService.isValid("   "));
+        verifyNoInteractions(restTemplate);
     }
 
     @Test
-    @DisplayName("Debería retornar false si la respuesta de Google es null")
-    void deberiaRetornarFalseSiRespuestaEsNull() {
-        // Arrange
-        String token = "valid-token";
+    @DisplayName("Should return false when Google response is null")
+    void shouldReturnFalseWhenResponseIsNull() {
         when(restTemplate.postForObject(anyString(), isNull(), eq(Map.class)))
                 .thenReturn(null);
 
-        // Act
-        boolean result = recaptchaService.isValid(token);
-
-        // Assert
-        assertFalse(result);
+        assertFalse(recaptchaService.isValid("valid-token"));
     }
 
     @Test
-    @DisplayName("Debería retornar false si ocurre una excepción")
-    void deberiaRetornarFalseSiOcurreExcepcion() {
-        // Arrange
-        String token = "valid-token";
+    @DisplayName("Should return false when exception occurs")
+    void shouldReturnFalseWhenExceptionOccurs() {
         when(restTemplate.postForObject(anyString(), isNull(), eq(Map.class)))
-                .thenThrow(new RuntimeException("Error de red"));
+                .thenThrow(new RuntimeException("Network error"));
 
-        // Act
-        boolean result = recaptchaService.isValid(token);
-
-        // Assert
-        assertFalse(result);
+        assertFalse(recaptchaService.isValid("valid-token"));
     }
 }

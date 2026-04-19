@@ -120,6 +120,7 @@ public class SecurityConfig {
 
                         // ── Rutas públicas (sin autenticación) ───────────────────────
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/chatbot/public-chat").permitAll()
 
                         // ── Chatbot (requiere autenticación para RBAC) ──────────────
                         .requestMatchers("/api/chatbot/**").authenticated()

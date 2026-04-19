@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -163,8 +164,11 @@ public class AppointmentService {
             throw new RuntimeException("No se puede cancelar una cita completada");
         }
 
-        if (appointment.getDate().isBefore(LocalDate.now(ZoneId.of("America/Bogota")))) {
-            throw new RuntimeException("No se puede cancelar una cita que ya ocurrió");
+        // Regla: se necesitan más de 24 horas de anticipación para cancelar
+        LocalDateTime citaDateTime = LocalDateTime.of(appointment.getDate(), appointment.getTime());
+        LocalDateTime ahora = LocalDateTime.now(ZoneId.of("America/Bogota"));
+        if (java.time.Duration.between(ahora, citaDateTime).toHours() < 24) {
+            throw new RuntimeException("No se puede cancelar con menos de 24 horas de anticipación");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -360,9 +364,15 @@ public class AppointmentService {
         Appointment apt = appointmentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Cita no encontrada"));
 
-        if (apt.getStatus() == AppointmentStatus.CANCELLED ||
-                apt.getStatus() == AppointmentStatus.CANCELLED) {
+        if (apt.getStatus() == AppointmentStatus.CANCELLED) {
             throw new RuntimeException("La cita ya está cancelada");
+        }
+
+        // Regla: se necesitan más de 24 horas de anticipación para cancelar
+        LocalDateTime citaDateTime = LocalDateTime.of(apt.getDate(), apt.getTime());
+        LocalDateTime ahora = LocalDateTime.now(ZoneId.of("America/Bogota"));
+        if (java.time.Duration.between(ahora, citaDateTime).toHours() < 24) {
+            throw new RuntimeException("No se puede cancelar con menos de 24 horas de anticipación");
         }
 
         apt.setStatus(AppointmentStatus.CANCELLED);
