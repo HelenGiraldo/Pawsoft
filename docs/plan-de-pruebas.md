@@ -186,7 +186,7 @@ Cobertura por servicio:
 
 El sistema fue validado en el entorno de producción con las siguientes verificaciones:
 
-- Frontend accesible en `https://www.pawsoft.online` con HTTPS y certificado válido
+- Frontend accesible en `https://d62s9ba36azh1.cloudfront.net/login` con HTTPS y certificado válido
 - Backend respondiendo en `https://api.pawsoft.online` con todos los endpoints operativos
 - Flujo completo de registro, login con 2FA, gestión de citas y pagos verificado manualmente
 - Panel de Grafana mostrando métricas en tiempo real del backend
