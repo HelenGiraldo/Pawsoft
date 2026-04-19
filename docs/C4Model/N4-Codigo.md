@@ -20,6 +20,9 @@ El sistema se implementa en dos repositorios principales alineados con el Nivel 
 │       │   ├── /pages/                 # Páginas de la aplicación por módulo
 │       │   │   ├── /auth/              # Autenticación (login, registro, recuperación)
 │       │   │   ├── /appointments/      # Dashboards por rol (cliente, recepcionista, veterinario, admin)
+│       │   │   │   └── /dashboard-vet/ # Dashboard veterinario con historial clínico
+│       │   │   │       ├── /atencion-medica/     # Atención médica y consultas
+│       │   │   │       └── /formulario-consulta/ # Formularios de consulta médica
 │       │   │   ├── /pet/               # Gestión de mascotas
 │       │   │   ├── /admin-payments/    # Panel de pagos del administrador
 │       │   │   └── /perfil-cliente/    # Perfil del usuario
@@ -43,15 +46,15 @@ El sistema se implementa en dos repositorios principales alineados con el Nivel 
     └── /src/main/java/co/edu/uniquindio/backendpawsoft/
     │   ├── /audit/                      # Sistema de auditoría (logs de acciones)
     │   ├── /config/                     # Configuración de seguridad, CORS, beans
-    │   ├── /controller/                 # APIs REST por módulo (Auth, Appointments, Pets, Payments, Users)
+    │   ├── /controller/                 # APIs REST por módulo (Auth, Appointments, Pets, Payments, Users, Medical History)
     │   ├── /dto/                        # Data Transfer Objects (request/response)
-    │   ├── /enums/                      # Enumeraciones (roles, estados)
+    │   ├── /enums/                      # Enumeraciones (roles, estados, tipos de hospitalización)
     │   ├── /exception/                  # Manejo global de excepciones
-    │   ├── /model/                      # Entidades JPA (User, Pet, Appointment, Payment, etc.)
+    │   ├── /model/                      # Entidades JPA (User, Pet, Appointment, Payment, MedicalHistory, Hospitalization, etc.)
     │   ├── /repository/                 # Repositorios JPA (acceso a datos)
     │   ├── /scheduler/                  # Tareas programadas (limpieza de códigos 2FA)
     │   ├── /security/                   # JWT, filtros de autenticación
-    │   └── /service/                    # Lógica de negocio (Auth, Appointments, Pets, Payments, Email, etc.)
+    │   └── /service/                    # Lógica de negocio (Auth, Appointments, Pets, Payments, Email, MedicalHistory, etc.)
     │   BackendPawsoftApplication.java   # Clase principal de Spring Boot
     ├── /src/main/resources/
     │   application.properties           # Configuración de la aplicación y MySQL
@@ -95,6 +98,8 @@ Responsable de:
 - Persistencia de datos con JPA / Hibernate sobre MySQL.
 - Integraciones externas (Cloudinary, Gmail SMTP, reCAPTCHA).
 - Auditoría de acciones críticas.
+- Gestión de historiales clínicos y hospitalización.
+- Manejo de archivos médicos con Cloudinary.
 - Monitoreo de métricas con Prometheus y Grafana.
 
 Capas principales:
@@ -111,6 +116,18 @@ Capas principales:
 | `audit` | Registro de acciones críticas en tabla `audit_log` |
 | `scheduler` | Limpieza periódica de tokens y códigos 2FA expirados |
 | `exception` | Manejo global de errores con `@ControllerAdvice` |
+
+### Nuevos componentes del sistema de historial clínico:
+
+| Componente | Descripción |
+|---|---|
+| `MedicalHistoryController` | Endpoints para gestión de historiales médicos |
+| `HospitalizationController` | APIs para manejo de hospitalizaciones |
+| `MedicalProfileService` | Lógica de negocio para perfiles médicos |
+| `FileAttachmentService` | Gestión de archivos médicos con Cloudinary |
+| `HospitalizationType` (enum) | Tipos de hospitalización disponibles |
+| `MedicalHistory` (model) | Entidad para historiales clínicos |
+| `Hospitalization` (model) | Entidad para registros de hospitalización |
 
 ---
 

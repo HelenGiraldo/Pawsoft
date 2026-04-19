@@ -113,4 +113,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("today") LocalDate today,
             @Param("now") LocalTime now
     );
+
+    /**
+     * Cuenta el número de citas con un estado específico.
+     * Usado para métricas de Prometheus/Grafana.
+     *
+     * @param status estado de la cita
+     * @return número de citas con ese estado
+     */
+    long countByStatus(AppointmentStatus status);
+
+    /**
+     * Cuenta el número de citas completadas en la fecha actual.
+     * Usado para métricas de Prometheus/Grafana.
+     *
+     * @param status estado COMPLETED
+     * @return número de citas completadas hoy
+     */
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.status = :status AND a.date = CURRENT_DATE")
+    long countByStatusAndDateToday(@Param("status") AppointmentStatus status);
 }
