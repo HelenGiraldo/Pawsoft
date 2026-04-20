@@ -18,11 +18,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  * Profesor:
  * - Raúl Yulbraynner Rivera Gálvez
- */
  * - Helen Xiomara Giraldo Libreros
  *
- * Profesor:
- * Raúl Yulbraynner Rivera Gálvez
+ * Profesor:Raúl Yulbraynner Rivera Gálvez
  *
  */
 
