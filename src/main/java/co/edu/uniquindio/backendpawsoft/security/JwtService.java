@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.security;
 
+/**
+ * Servicio para la gestión de tokens JWT (JSON Web Tokens).
+ * Maneja la generación, validación y extracción de información de los tokens de autenticación.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

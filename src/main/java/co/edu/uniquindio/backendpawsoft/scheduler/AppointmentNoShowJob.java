@@ -9,6 +9,23 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Trabajo programado para marcar automáticamente las citas como "no show" cuando los clientes no asisten.
+ * Se ejecuta cada 30 minutos para verificar citas confirmadas que han pasado su horario programado.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
+ */
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;

@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
+/**
+ * Controlador REST para la gestión del chatbot con inteligencia artificial.
+ * Maneja las consultas de usuarios, sugerencias médicas y el historial de conversaciones.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.dto.ChatRequest;
 import co.edu.uniquindio.backendpawsoft.dto.ChatResponse;
 import co.edu.uniquindio.backendpawsoft.dto.MessageHistory;

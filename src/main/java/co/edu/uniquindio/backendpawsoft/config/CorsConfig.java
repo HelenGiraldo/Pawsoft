@@ -2,14 +2,19 @@ package co.edu.uniquindio.backendpawsoft.config;
 
 /**
  * Configuración de CORS para la aplicación.
- *
  * Permite solicitudes desde los orígenes autorizados (producción y desarrollo local),
  * habilitando credenciales y los métodos HTTP necesarios para la API REST.
  *
  * Proyecto: Pawsoft
- * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
- * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
- * Profesor: Raúl Yulbraynner Rivera Gálvez
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
  */
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

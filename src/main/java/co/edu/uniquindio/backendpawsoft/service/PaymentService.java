@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para la gestión de pagos y facturación.
+ * Maneja el registro de pagos, ajustes y consultas del historial financiero.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.PaymentStatus;

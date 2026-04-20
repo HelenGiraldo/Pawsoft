@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Clase principal del sistema Backend Pawsoft.
+ * Aplicación Spring Boot que gestiona el sistema de gestión veterinaria.
  *
  * Proyecto: Pawsoft
  * Universidad del Quindío
@@ -13,6 +14,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  * Autoras:
  * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
  * - Helen Xiomara Giraldo Libreros
  *
  * Profesor:

@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para la gestión de citas veterinarias.
+ * Maneja la creación, actualización, cancelación y consulta de citas médicas.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.enums.AppointmentStatus;

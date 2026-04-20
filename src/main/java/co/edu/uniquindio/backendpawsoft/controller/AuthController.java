@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
+/**
+ * Controlador REST para la gestión de autenticación y autorización.
+ * Maneja el registro, login, verificación 2FA, recuperación de contraseñas y refresh tokens.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.dto.*;
 import co.edu.uniquindio.backendpawsoft.service.AuthService;
 import co.edu.uniquindio.backendpawsoft.service.PasswordResetService;

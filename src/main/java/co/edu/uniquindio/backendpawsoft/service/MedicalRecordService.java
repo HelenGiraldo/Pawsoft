@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para la gestión de historiales médicos de mascotas.
+ * Maneja la creación, consulta y actualización de registros médicos veterinarios.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.MedicalRecordRequest;
 import co.edu.uniquindio.backendpawsoft.dto.MedicalRecordResponse;

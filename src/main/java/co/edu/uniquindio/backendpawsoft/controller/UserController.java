@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.controller;
 
+/**
+ * Controlador REST para la gestión de usuarios del sistema.
+ * Maneja las operaciones CRUD de usuarios y la gestión de perfiles.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.dto.UserRequest;
 import co.edu.uniquindio.backendpawsoft.dto.UserResponse;
 import co.edu.uniquindio.backendpawsoft.model.User;

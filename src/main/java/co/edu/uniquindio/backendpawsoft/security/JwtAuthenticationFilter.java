@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.security;
 
+/**
+ * Filtro de autenticación JWT para interceptar y validar tokens en las peticiones HTTP.
+ * Extrae el token del header Authorization y establece el contexto de seguridad de Spring.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

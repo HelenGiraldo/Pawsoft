@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para la gestión de autenticación y autorización.
+ * Maneja registro, login, verificación 2FA y gestión de tokens.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.audit.AuditLogService;
 import co.edu.uniquindio.backendpawsoft.dto.LoginRequest;
 import co.edu.uniquindio.backendpawsoft.dto.LoginResponse;

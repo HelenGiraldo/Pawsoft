@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.repository;
 
+/**
+ * Repositorio para la gestión de tokens de actualización (refresh tokens).
+ * Proporciona métodos para consultar, eliminar y limpiar tokens expirados.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.model.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

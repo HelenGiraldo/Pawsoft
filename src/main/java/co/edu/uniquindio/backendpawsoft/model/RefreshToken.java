@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.model;
 
+/**
+ * Entidad que representa un token de actualización (refresh token) para la autenticación.
+ * Permite renovar tokens JWT sin requerir nuevas credenciales del usuario.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

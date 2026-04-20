@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.dto;
 
+/**
+ * DTO para la verificación de autenticación de dos factores (2FA).
+ * Contiene el email del usuario y el código de verificación recibido.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

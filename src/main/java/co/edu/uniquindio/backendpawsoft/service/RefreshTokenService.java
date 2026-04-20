@@ -1,5 +1,20 @@
 package co.edu.uniquindio.backendpawsoft.service;
 
+/**
+ * Servicio para la gestión de tokens de actualización (refresh tokens).
+ * Maneja la creación, validación, renovación y limpieza automática de tokens expirados.
+ *
+ * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
 import co.edu.uniquindio.backendpawsoft.model.RefreshToken;
 import co.edu.uniquindio.backendpawsoft.repository.RefreshTokenRepository;
 import co.edu.uniquindio.backendpawsoft.security.JwtService;

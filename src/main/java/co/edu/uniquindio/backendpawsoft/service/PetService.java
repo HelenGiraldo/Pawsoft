@@ -2,12 +2,21 @@ package co.edu.uniquindio.backendpawsoft.service;
 
 /**
  * Servicio para la gestión de mascotas del cliente autenticado.
- *
  * Permite listar, crear, actualizar y eliminar mascotas. Todas las operaciones
  * validan que el cliente autenticado sea el propietario de la mascota antes
  * de aplicar cambios. Cada operación queda registrada en auditoría.
  *
  * Proyecto: Pawsoft
+ * Universidad del Quindío
+ * Materia: Software III
+ *
+ * Autoras:
+ * - Valentina Porras Salazar
+ * - Helen Xiomara Giraldo Libreros
+ *
+ * Profesor:
+ * - Raúl Yulbraynner Rivera Gálvez
+ */
  * Universidad del Quindío — Ingeniería de Sistemas y Computación — Software III
  * Autoras: Valentina Porras Salazar · Helen Xiomara Giraldo Libreros
  * Profesor: Raúl Yulbraynner Rivera Gálvez
