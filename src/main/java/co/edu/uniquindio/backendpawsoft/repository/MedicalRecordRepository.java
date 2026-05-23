@@ -23,5 +23,9 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     /** Registro médico asociado a una cita específica. */
     Optional<MedicalRecord> findByAppointmentId(Long appointmentId);
 
+    /** Registros médicos de un cliente específico, ordenados por fecha descendente. */
+    @org.springframework.data.jpa.repository.Query("SELECT mr FROM MedicalRecord mr WHERE mr.appointment.client.id = :clientId ORDER BY mr.creadoEn DESC")
+    List<MedicalRecord> findByAppointmentClientIdOrderByCreadoEnDesc(@org.springframework.data.repository.query.Param("clientId") Long clientId);
+
     void deleteByVetId(Long vetId);
 }

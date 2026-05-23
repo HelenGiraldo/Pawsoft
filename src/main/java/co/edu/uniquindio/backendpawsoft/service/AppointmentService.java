@@ -27,12 +27,16 @@ import co.edu.uniquindio.backendpawsoft.repository.PetRepository;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import jakarta.annotation.PostConstruct;
 
 /**
  * Servicio encargado de gestionar la lógica de negocio
@@ -65,6 +69,29 @@ public class AppointmentService {
     private final UserRepository userRepository;
     private final PetRepository petRepository;
     private final AuditLogService auditLogService;
+    private final MeterRegistry meterRegistry;
+
+    // Métricas personalizadas
+    private Counter appointmentsCreatedCounter;
+    private Counter appointmentsCancelledCounter;
+    
+    @PostConstruct
+    public void initMetrics() {
+        appointmentsCreatedCounter = Counter.builder("appointments_created_total")
+                .description("Total number of appointments created")
+                .register(meterRegistry);
+                
+        appointmentsCancelledCounter = Counter.builder("appointments_cancelled_total")
+                .description("Total number of appointments cancelled")
+                .register(meterRegistry);
+                
+        // Gauge para citas de hoy - OPTIMIZADO: usa query directa en lugar de findAll()
+        Gauge.builder("appointments_created_today", this, service -> {
+                    return (double) appointmentRepository.countByDate(LocalDate.now());
+                })
+                .description("Number of appointments created today")
+                .register(meterRegistry);
+    }
 
     /**
      * Crea una nueva cita para el cliente autenticado.

@@ -32,15 +32,15 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // Especificar orígenes exactos en lugar de usar *
-        // Esto es necesario cuando setAllowCredentials(true)
+        // Especificar orígenes exactos incluyendo Grafana
         config.setAllowedOrigins(Arrays.asList(
             "https://pawsoft.online",
             "https://www.pawsoft.online",
             "https://icy-dune-0d82b770f.2.azurestaticapps.net",
             "http://localhost:4200",
             "http://localhost:8100",
-                "https://d62s9ba36azh1.cloudfront.net"
+            "https://d62s9ba36azh1.cloudfront.net",
+            "http://3.137.150.192:3000"
         ));
         
         config.setAllowedHeaders(Arrays.asList("*"));
@@ -50,6 +50,17 @@ public class CorsConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+        
+        // Configuración específica para endpoints de actuator
+        CorsConfiguration actuatorConfig = new CorsConfiguration();
+        actuatorConfig.setAllowedOrigins(Arrays.asList("*"));
+        actuatorConfig.setAllowedHeaders(Arrays.asList("*"));
+        actuatorConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        actuatorConfig.setAllowCredentials(false); // Para actuator no necesitamos credenciales
+        actuatorConfig.setMaxAge(3600L);
+        
+        source.registerCorsConfiguration("/actuator/**", actuatorConfig);
+        
         return source;
     }
 

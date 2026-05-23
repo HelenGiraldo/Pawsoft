@@ -53,10 +53,9 @@ public class AdminUserService {
     private final HospitalizationRepository hospitalizationRepository;
     private final AuditLogService auditLogService;
 
-    /** Lista todos los usuarios que NO son clientes */
+    /** Lista todos los usuarios que NO son clientes - OPTIMIZADO */
     public List<UserResponse> getStaffUsers() {
-        return userRepository.findAll().stream()
-                .filter(u -> u.getRole() != Role.ROLE_CLIENTE)
+        return userRepository.findByRoleNot(Role.ROLE_CLIENTE).stream()
                 .map(this::toResponse)
                 .toList();
     }

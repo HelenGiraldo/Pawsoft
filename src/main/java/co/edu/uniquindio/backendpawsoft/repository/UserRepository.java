@@ -41,4 +41,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Para listar veterinarios (y filtrar por rol en el admin)
     List<User> findByRole(Role role);
 
+    /**
+     * Busca el primer usuario con un rol específico.
+     * Optimización para evitar findAll() cuando solo se necesita un usuario.
+     *
+     * @param role rol del usuario
+     * @return Optional con el primer usuario encontrado
+     */
+    Optional<User> findFirstByRole(Role role);
+
+    /**
+     * Busca usuarios que NO tengan un rol específico.
+     * Optimización para listar staff (todos excepto clientes).
+     *
+     * @param role rol a excluir
+     * @return lista de usuarios que no tienen ese rol
+     */
+    List<User> findByRoleNot(Role role);
+
 }

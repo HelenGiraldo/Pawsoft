@@ -26,6 +26,7 @@ import co.edu.uniquindio.backendpawsoft.model.User;
 import co.edu.uniquindio.backendpawsoft.repository.UserRepository;
 import co.edu.uniquindio.backendpawsoft.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -80,6 +81,10 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final RefreshTokenService refreshTokenService;
 
+
+    @Value("${app.demo.email}")
+    private String demoEmail;
+
     // ── Fase 1: Login ─────────────────────────────────────────────────────────
 
     /**
@@ -117,10 +122,13 @@ public class AuthService {
      */
     public LoginResponse login(LoginRequest loginRequest, String ipOrigen) {
 
-        // Valida reCAPTCHA antes de cualquier consulta a BD
-        if (!recaptchaService.isValid(loginRequest.getRecaptchaToken())) {
+        // Valida reCAPTCHA — se omite para el usuario demo
+        boolean isDemo = loginRequest.getEmail().equals(demoEmail);
+
+        if (!isDemo && !recaptchaService.isValid(loginRequest.getRecaptchaToken())) {
             throw new UnauthorizedException("Verificación reCAPTCHA fallida. Intenta de nuevo.");
         }
+
 
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new NotFoundException("Credenciales inválidas. Verifica tu correo y contraseña"));
@@ -142,6 +150,14 @@ public class AuthService {
 
         // Login exitoso — resetea el contador de fallos
         resetFailedAttempts(user);
+
+        // Usuario demo — salta 2FA y retorna token directamente
+        if (isDemo) {
+            String token = jwtService.generateToken(user);
+            String refreshToken = refreshTokenService.createRefreshToken(user.getEmail(), "web");
+            auditLogService.log("USER_LOGIN", "Login demo sin 2FA", "USER", user.getId().intValue());
+            return new LoginResponse("Autenticación completa", user.getEmail(), user.getRole().name(), token, refreshToken, false);
+        }
 
         // Genera y envía el código 2FA; registra la IP de esta solicitud
         Codigo2FA codigo = twoFactorService.crearCodigo(user, ipOrigen);

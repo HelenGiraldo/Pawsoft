@@ -58,7 +58,7 @@ class AppointmentServiceTest {
 
         appointment = Appointment.builder()
                 .id(1L)
-                .date(LocalDate.now().plusDays(1))
+                .date(LocalDate.now().plusDays(2))
                 .time(LocalTime.of(10, 0))
                 .reason("Checkup")
                 .status(AppointmentStatus.UPCOMING)

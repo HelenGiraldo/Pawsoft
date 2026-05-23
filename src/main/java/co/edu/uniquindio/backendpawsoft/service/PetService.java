@@ -52,9 +52,30 @@ public class PetService {
     private final AuditLogService auditLogService;
 
     public List<PetResponse> getByOwner(String email) {
-        return petRepository.findByOwnerEmail(email)
+        List<Pet> pets = petRepository.findByOwnerEmail(email);
+        
+        // Optimización: Cargar estados de hospitalización en una sola query
+        List<Long> petIds = pets.stream().map(Pet::getId).toList();
+        
+        // Obtener mascotas fallecidas en una sola query
+        List<Long> deceasedPetIds = hospitalizationRepository
+                .findByPetIdInAndStatus(petIds, HospitalizationStatus.DECEASED)
                 .stream()
-                .map(this::toResponse)
+                .map(h -> h.getPet().getId())
+                .distinct()
+                .toList();
+        
+        // Obtener mascotas hospitalizadas en una sola query
+        List<Long> hospitalizedPetIds = hospitalizationRepository
+                .findByPetIdInAndStatus(petIds, HospitalizationStatus.ACTIVE)
+                .stream()
+                .map(h -> h.getPet().getId())
+                .distinct()
+                .toList();
+        
+        // Mapear a respuestas usando los sets precargados
+        return pets.stream()
+                .map(pet -> toResponseOptimized(pet, deceasedPetIds, hospitalizedPetIds))
                 .toList();
     }
 
@@ -188,6 +209,25 @@ public class PetService {
                 .photoUrl(pet.getPhotoUrl())
                 .isDeceased(isDeceased)
                 .isHospitalized(isHospitalized)
+                .build();
+    }
+
+    /**
+     * Versión optimizada de toResponse que usa listas precargadas
+     * para evitar N+1 queries.
+     */
+    private PetResponse toResponseOptimized(Pet pet, List<Long> deceasedPetIds, List<Long> hospitalizedPetIds) {
+        return PetResponse.builder()
+                .id(pet.getId())
+                .name(pet.getName())
+                .species(pet.getSpecies())
+                .breed(pet.getBreed())
+                .birthDate(pet.getBirthDate())
+                .sex(pet.getSex())
+                .ownerEmail(pet.getOwnerEmail())
+                .photoUrl(pet.getPhotoUrl())
+                .isDeceased(deceasedPetIds.contains(pet.getId()))
+                .isHospitalized(hospitalizedPetIds.contains(pet.getId()))
                 .build();
     }
 }

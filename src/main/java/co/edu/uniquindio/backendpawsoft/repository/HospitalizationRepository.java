@@ -44,6 +44,12 @@ public interface HospitalizationRepository extends JpaRepository<Hospitalization
     List<Hospitalization> findByPetIdAndStatus(Long petId, HospitalizationStatus status);
 
     /**
+     * Busca hospitalizaciones de múltiples mascotas con estado específico.
+     * Optimización para evitar N+1 queries.
+     */
+    List<Hospitalization> findByPetIdInAndStatus(List<Long> petIds, HospitalizationStatus status);
+
+    /**
      * Busca la hospitalización activa de una mascota (si existe).
      */
     @Query("SELECT h FROM Hospitalization h WHERE h.pet.id = :petId AND h.status = 'ACTIVE'")

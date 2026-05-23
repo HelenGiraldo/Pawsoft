@@ -32,11 +32,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     /**
      * Obtiene todas las citas de un cliente ordenadas por fecha y hora.
+     * Usa JOIN FETCH para evitar N+1 queries.
      *
      * @param clientId identificador del cliente
      * @return lista de citas ordenadas ascendentemente
      */
-    List<Appointment> findByClientIdOrderByDateAscTimeAsc(Long clientId);
+    @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.client LEFT JOIN FETCH a.vet LEFT JOIN FETCH a.pet WHERE a.client.id = :clientId ORDER BY a.date ASC, a.time ASC")
+    List<Appointment> findByClientIdOrderByDateAscTimeAsc(@Param("clientId") Long clientId);
 
     /**
      * Obtiene las citas de un cliente filtradas por estado
@@ -65,9 +67,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     /**
      * Lista todas las citas ordenadas por fecha y hora descendente.
      * Usado por el recepcionista para ver el historial completo.
+     * Usa JOIN FETCH para evitar N+1 queries.
      *
      * @return lista de todas las citas
      */
+    @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.client LEFT JOIN FETCH a.vet LEFT JOIN FETCH a.pet ORDER BY a.date DESC, a.time DESC")
     List<Appointment> findAllByOrderByDateDescTimeDesc();
 
     /**
@@ -87,11 +91,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      * Obtiene la lista de citas asociadas a un veterinario específico,
      * ordenadas por fecha ascendente y, en caso de coincidencia,
      * por hora ascendente.
+     * Usa JOIN FETCH para evitar N+1 queries.
      *
      * @param vetId id del veterinario
      * @return lista de citas del veterinario ordenadas por fecha y hora
      */
-    List<Appointment> findByVetIdOrderByDateAscTimeAsc(Long vetId);
+    @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.client LEFT JOIN FETCH a.vet LEFT JOIN FETCH a.pet WHERE a.vet.id = :vetId ORDER BY a.date ASC, a.time ASC")
+    List<Appointment> findByVetIdOrderByDateAscTimeAsc(@Param("vetId") Long vetId);
 
     void deleteByClientId(Long clientId);
 
@@ -132,4 +138,22 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.status = :status AND a.date = CURRENT_DATE")
     long countByStatusAndDateToday(@Param("status") AppointmentStatus status);
+
+    /**
+     * Cuenta el número de citas de un cliente específico.
+     * Optimización para evitar findAll().
+     *
+     * @param clientId ID del cliente
+     * @return número de citas del cliente
+     */
+    long countByClientId(Long clientId);
+
+    /**
+     * Cuenta el número de citas en una fecha específica.
+     * Optimización para métricas.
+     *
+     * @param date fecha a consultar
+     * @return número de citas en esa fecha
+     */
+    long countByDate(LocalDate date);
 }

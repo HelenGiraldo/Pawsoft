@@ -88,7 +88,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/auth/verify-email")
                 || path.startsWith("/auth/resend-verification")
                 || path.startsWith("/auth/refresh")
-                || path.startsWith("/auth/logout");
+                || path.startsWith("/auth/logout")
+                || path.startsWith("/actuator")
+                || path.startsWith("/api/prometheus");
     }
 
 

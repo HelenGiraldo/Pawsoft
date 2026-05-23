@@ -183,11 +183,9 @@ public class MedicalRecordService {
         User client = userRepository.findByEmail(clientEmail)
                 .orElseThrow(() -> new NotFoundException("Cliente no encontrado"));
 
-        return medicalRecordRepository.findAll()
+        return medicalRecordRepository.findByAppointmentClientIdOrderByCreadoEnDesc(client.getId())
                 .stream()
-                .filter(r -> r.getAppointment().getClient() != null
-                        && r.getAppointment().getClient().getId().equals(client.getId())
-                        && r.getAppointment().getStatus() == AppointmentStatus.COMPLETED)
+                .filter(r -> r.getAppointment().getStatus() == AppointmentStatus.COMPLETED)
                 .map(this::mapToResponse)
                 .toList();
     }

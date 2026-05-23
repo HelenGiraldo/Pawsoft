@@ -617,7 +617,7 @@
 
 **Fecha de ejecución:** 19 de Abril de 2026  
 **Ejecutado por:** Equipo de desarrollo PawSoft  
-**Ambiente:** Producción (https://www.pawsoft.online)  
+**Ambiente:** Producción (https://d62s9ba36azh1.cloudfront.net/login)  
 **Navegadores probados:** Chrome, Firefox, Safari, Edge
 
 ---
